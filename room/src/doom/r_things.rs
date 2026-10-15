@@ -764,7 +764,9 @@ pub unsafe extern "C" fn R_ProjectSprite(thing: *mut c_void) {
         (*vis).colormap = colormaps;
     } else {
         // Diminished light.
-        let mut index = (xscale >> (LIGHTSCALESHIFT - detailshift as u32)) as usize;
+        // DOOMMW2 (sheet 06): zoom-neutral light scale (identity when not zoomed).
+        let mut index = (crate::dmw::freelook::light_scale(xscale)
+            >> (LIGHTSCALESHIFT - detailshift as u32)) as usize;
         if index >= MAXLIGHTSCALE {
             index = MAXLIGHTSCALE - 1;
         }
@@ -981,13 +983,16 @@ pub unsafe extern "C" fn R_DrawPlayerSprites() {
     mceilingclip = std::ptr::addr_of_mut!(negonearray[0]);
 
     // Add all active psprites.
-    let psp = (*viewplayer).psprites.as_ptr() as *mut PspdefT;
-    for i in 0..NUMPSPRITES {
-        let psp_i = psp.add(i);
-        if !(*psp_i).state.is_null() {
-            R_DrawPSprite(psp_i);
+    // DOOMMW2 (sheet 06): psprites are camera-attached, so they ignore the freelook shear.
+    crate::dmw::freelook::with_unsheared_center(|| {
+        let psp = (*viewplayer).psprites.as_ptr() as *mut PspdefT;
+        for i in 0..NUMPSPRITES {
+            let psp_i = psp.add(i);
+            if !(*psp_i).state.is_null() {
+                R_DrawPSprite(psp_i);
+            }
         }
-    }
+    });
 }
 
 // ---------------------------------------------------------------------------

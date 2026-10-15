@@ -6,11 +6,14 @@
 //! value, so a call site in `room/src/doom/*` leaves vanilla behaviour untouched. Sheet 08
 //! owns this file and the one-line delegations into the other `dmw` modules. Sheet 05 added
 //! the call sites and delegations for its own rows (`on_build_ticcmd`, `mouse_look_active`,
-//! `force_run`, `on_ticcmd_copied`, `release_mouse`); sheet 08 adds the rest.
+//! `force_run`, `on_ticcmd_copied`, `release_mouse`) and sheet 06 for its own
+//! (`on_setup_frame`, `on_view_size_changed`); sheet 08 adds the rest.
 //!
 //! Hooks listed in the table but defined elsewhere:
 //! - `input::on_mouse_event` and `input::scale_yaw` live in [`super::input`].
-//! - `freelook::with_unsheared_center` lives in [`super::freelook`].
+//! - `freelook::with_unsheared_center` lives in [`super::freelook`], as do the sheet 06 table
+//!   helpers the renderer calls directly (`fine_fov`, `focal_fixed`, `focal_y_fixed`,
+//!   `light_scale`, `sky_iscale`).
 //! - `DG_GetMouse` is a C-ABI platform callback added by sheet 05.
 //! - `audio::play` is added by sheet 12.
 
@@ -83,10 +86,15 @@ pub(crate) unsafe fn on_explode(_thing: *mut mobj_t) -> bool {
 pub(crate) unsafe fn on_remove_mobj(_mo: *mut mobj_t) {}
 
 /// `R_SetupFrame`, end: shear, view kick, FOV zoom.
-pub(crate) unsafe fn on_setup_frame(_player: *mut PlayerT) {}
+pub(crate) unsafe fn on_setup_frame(player: *mut PlayerT) {
+    // SAFETY: forwarded unchanged; the caller passes the player R_SetupFrame received.
+    unsafe { super::freelook::on_setup_frame(player) }
+}
 
 /// `R_ExecuteSetViewSize`, end: rebuild shear and `yslope` tables.
-pub(crate) fn on_view_size_changed() {}
+pub(crate) fn on_view_size_changed() {
+    super::freelook::on_view_size_changed();
+}
 
 /// `R_DrawPlayerSprites`, start: software viewmodel. `true` = skip the vanilla psprites.
 pub(crate) fn draw_player_weapon() -> bool {

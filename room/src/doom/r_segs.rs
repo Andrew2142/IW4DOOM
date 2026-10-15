@@ -411,7 +411,10 @@ pub unsafe extern "C" fn R_RenderMaskedSegRange(ds: *mut drawseg_t, x1: c_int, x
     while dc_x <= x2 {
         if *maskedtexturecol.add(dc_x as usize) != c_short::MAX {
             if fixedcolormap.is_null() {
-                let mut index = (crate::doom::r_things::spryscale as u32) >> LIGHTSCALESHIFT;
+                // DOOMMW2 (sheet 06): zoom-neutral light scale (identity when not zoomed).
+                let mut index = (crate::dmw::freelook::light_scale(crate::doom::r_things::spryscale)
+                    as u32)
+                    >> LIGHTSCALESHIFT;
                 if index >= MAXLIGHTSCALE as u32 {
                     index = (MAXLIGHTSCALE - 1) as u32;
                 }
@@ -505,7 +508,8 @@ unsafe fn R_RenderSegLoop() {
             texturecolumn =
                 rw_offset - FixedMul(tables::finetangent[angle as usize & FINEMASK], rw_distance);
 
-            let mut index = (rw_scale as u32) >> LIGHTSCALESHIFT;
+            // DOOMMW2 (sheet 06): zoom-neutral light scale (identity when not zoomed).
+            let mut index = (crate::dmw::freelook::light_scale(rw_scale) as u32) >> LIGHTSCALESHIFT;
             if index >= MAXLIGHTSCALE as u32 {
                 index = (MAXLIGHTSCALE - 1) as u32;
             }

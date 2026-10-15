@@ -389,8 +389,8 @@ use crate::doom::r_draw::{
     ds_x1, ds_x2, ds_xfrac, ds_xstep, ds_y, ds_yfrac, ds_ystep, viewheight, viewwidth,
 };
 use crate::doom::r_main::{
-    centerxfrac, colfunc, detailshift, extralight, fixedcolormap, spanfunc, viewangle, viewx,
-    viewy, viewz, xtoviewangle, zlight,
+    colfunc, detailshift, extralight, fixedcolormap, projection, spanfunc, viewangle, viewx, viewy,
+    viewz, xtoviewangle, zlight,
 };
 use crate::doom::r_sky::{skytexture, skytexturemid};
 use crate::doom::r_things::pspriteiscale;
@@ -526,11 +526,13 @@ pub extern "C" fn R_ClearPlanes() {
         }
 
         // Left to right mapping
+        // DOOMMW2 (sheet 06): divide by the focal length `projection`, which is `centerxfrac`
+        // in vanilla (R_ExecuteSetViewSize) and larger under MW2 zoom.
         let angle = (viewangle.wrapping_sub(ANG90)) >> ANGLETOFINESHIFT;
-        basexscale = FixedDiv(finecosine(angle as usize), centerxfrac);
+        basexscale = FixedDiv(finecosine(angle as usize), projection);
         baseyscale = 0i32.wrapping_sub(FixedDiv(
             tables::finesine[angle as usize & FINEMASK as usize],
-            centerxfrac,
+            projection,
         ));
     }
 }
@@ -768,7 +770,8 @@ pub extern "C" fn R_DrawPlanes() {
 
             // Sky flat
             if (*pl).picnum == r_sky::skyflatnum {
-                dc_iscale = pspriteiscale >> detailshift;
+                // DOOMMW2 (sheet 06): vanilla value unless MW2 mode shears or zooms the view.
+                dc_iscale = crate::dmw::freelook::sky_iscale(pspriteiscale >> detailshift);
                 // Sky is always drawn full bright,
                 // i.e. colormaps[0] is used.
                 // Because of this hack, sky is not affected

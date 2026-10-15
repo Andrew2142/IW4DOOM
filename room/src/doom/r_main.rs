@@ -26,6 +26,9 @@ use crate::types::Boolean;
 
 /// Number of fine-angle steps spanning the horizontal field of view (90 degrees
 /// expressed in fine-angle units; `FINEANGLES / 4 = 2048`).
+/// DOOMMW2: `R_InitTextureMapping` reads `dmw::freelook::fine_fov()`, which is this value
+/// unless MW2 zoom narrows the view.
+#[allow(dead_code)]
 const FIELDOFVIEW: c_int = 2048;
 
 /// Screen pixel width, mirrored from `i_video` as a `usize` for array sizing.
@@ -706,9 +709,11 @@ pub unsafe extern "C" fn R_InitTextureMapping() {
     //  viewangletox will give the next greatest x after the view angle.
     //
     // Calc focallength so FIELDOFVIEW angles covers SCREENWIDTH.
+    // DOOMMW2 (sheet 06): the field of view is FIELDOFVIEW (2048) unless MW2 zoom narrows it.
+    let fieldofview = crate::dmw::freelook::fine_fov();
     let focallength = FixedDiv(
         centerxfrac,
-        tables::finetangent[tables::FINEANGLES / 4 + FIELDOFVIEW as usize / 2],
+        tables::finetangent[tables::FINEANGLES / 4 + fieldofview as usize / 2],
     );
 
     for i in 0..tables::FINEANGLES / 2 {
@@ -859,7 +864,8 @@ pub unsafe extern "C" fn R_ExecuteSetViewSize() {
     centerx = viewwidth / 2;
     centerxfrac = centerx << FRACBITS;
     centeryfrac = centery << FRACBITS;
-    projection = centerxfrac;
+    // DOOMMW2 (sheet 06): equals centerxfrac at 90 degrees.
+    projection = crate::dmw::freelook::focal_fixed();
 
     if detailshift == 0 {
         colfunc = Some(R_DrawColumn);
@@ -888,10 +894,12 @@ pub unsafe extern "C" fn R_ExecuteSetViewSize() {
     }
 
     // planes
+    // DOOMMW2 (sheet 06): equals (viewwidth << detailshift) / 2 * FRACUNIT at 90 degrees.
+    let focal_y = crate::dmw::freelook::focal_y_fixed();
     for i in 0..viewheight as usize {
         let mut dy = ((i as c_int - viewheight / 2) << FRACBITS) + FRACUNIT / 2;
         dy = dy.wrapping_abs();
-        crate::doom::r_plane::yslope[i] = FixedDiv((viewwidth << detailshift) / 2 * FRACUNIT, dy);
+        crate::doom::r_plane::yslope[i] = FixedDiv(focal_y, dy);
     }
 
     for i in 0..viewwidth as usize {
@@ -921,6 +929,8 @@ pub unsafe extern "C" fn R_ExecuteSetViewSize() {
             scalelight[i][j] = colormaps.add(level as usize * 256);
         }
     }
+
+    crate::dmw::hooks::on_view_size_changed();
 }
 
 // ---------------------------------------------------------------------------
@@ -1049,6 +1059,8 @@ pub unsafe extern "C" fn R_SetupFrame(player: *mut PlayerT) {
 
     framecount += 1;
     validcount += 1;
+
+    crate::dmw::hooks::on_setup_frame(player);
 }
 
 // ---------------------------------------------------------------------------
