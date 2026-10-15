@@ -11,7 +11,11 @@
 //! 1. **Upload** – `DG_ScreenBuffer` (raw BGRA8 pixels) is written into a
 //!    wgpu [`Texture`] via [`Queue::write_texture`].
 //! 2. **Render** – A single fullscreen-quad draw call samples the texture and
-//!    outputs to the swapchain surface.
+//!    outputs to the swapchain surface. With `[render] aspect_correct = true`
+//!    (DOOMMW2 sheet 06 section 5.6) the quad is drawn into the largest centred
+//!    4:3 viewport, so the 320 × 200 frame is shown at the 4:3 aspect Doom was
+//!    drawn for; the bars around it are cleared to black. Otherwise the quad
+//!    stretches over the whole surface.
 //!
 //! The WGSL shaders are embedded at compile time as string literals so the
 //! binary is self-contained (no external shader files required).
@@ -120,6 +124,33 @@ pub struct GpuState {
     bind_group: wgpu::BindGroup,
     /// The render pipeline executing the fullscreen-quad blit.
     render_pipeline: wgpu::RenderPipeline,
+    /// Present at 4:3 (letterboxed) instead of stretching (`[render] aspect_correct`).
+    aspect_correct: bool,
+}
+
+/// Displayed aspect ratio of the Doom frame when `aspect_correct` is on.
+pub const DISPLAY_ASPECT: f32 = 4.0 / 3.0;
+
+/// Render-pass viewport `(x, y, width, height)` in surface pixels.
+///
+/// With `aspect_correct` it is the largest rectangle of aspect [`DISPLAY_ASPECT`] centred in
+/// the surface (letterbox or pillarbox), otherwise the whole surface. Sizes are whole pixels
+/// and never zero.
+pub fn present_viewport(
+    surface_w: u32,
+    surface_h: u32,
+    aspect_correct: bool,
+) -> (f32, f32, f32, f32) {
+    let (sw, sh) = (surface_w.max(1) as f32, surface_h.max(1) as f32);
+    if !aspect_correct {
+        return (0.0, 0.0, sw, sh);
+    }
+    let (w, h) = if sw / sh > DISPLAY_ASPECT {
+        ((sh * DISPLAY_ASPECT).round().max(1.0), sh)
+    } else {
+        (sw, (sw / DISPLAY_ASPECT).round().max(1.0))
+    };
+    (((sw - w) / 2.0).floor(), ((sh - h) / 2.0).floor(), w, h)
 }
 
 /// Constructors and frame-time operations for [`GpuState`].
@@ -138,7 +169,7 @@ impl GpuState {
     /// # Errors
     ///
     /// Returns an error string if any wgpu initialisation step fails.
-    pub fn new(window: Arc<Window>) -> Result<Self, String> {
+    pub fn new(window: Arc<Window>, aspect_correct: bool) -> Result<Self, String> {
         let size = window.inner_size();
         // Use the default backends (Vulkan, Metal, DX12, OpenGL).
         // The `new_without_display_handle` constructor is used here for simplicity;
@@ -296,6 +327,7 @@ impl GpuState {
             doom_texture,
             bind_group,
             render_pipeline,
+            aspect_correct,
         })
     }
 
@@ -391,6 +423,9 @@ impl GpuState {
                 multiview_mask: None,
             });
 
+            let (vx, vy, vw, vh) =
+                present_viewport(self.config.width, self.config.height, self.aspect_correct);
+            render_pass.set_viewport(vx, vy, vw, vh, 0.0, 1.0);
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.bind_group, &[]);
             // Draw 6 vertices (2 triangles) without a vertex buffer.
@@ -400,5 +435,37 @@ impl GpuState {
         output.present();
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::present_viewport;
+
+    #[test]
+    fn letterbox_is_centred_4_3() {
+        assert_eq!(present_viewport(960, 720, true), (0.0, 0.0, 960.0, 720.0));
+        // Wide window: pillarbox.
+        assert_eq!(
+            present_viewport(1920, 1080, true),
+            (240.0, 0.0, 1440.0, 1080.0)
+        );
+        // Tall window: letterbox.
+        assert_eq!(
+            present_viewport(800, 1000, true),
+            (0.0, 200.0, 800.0, 600.0)
+        );
+        // The native 640x400 window shows the frame at 4:3 (533x400).
+        assert_eq!(present_viewport(640, 400, true), (53.0, 0.0, 533.0, 400.0));
+    }
+
+    #[test]
+    fn stretch_uses_the_whole_surface() {
+        assert_eq!(
+            present_viewport(1920, 1080, false),
+            (0.0, 0.0, 1920.0, 1080.0)
+        );
+        assert_eq!(present_viewport(0, 0, false), (0.0, 0.0, 1.0, 1.0));
+        assert_eq!(present_viewport(0, 0, true).2, 1.0);
     }
 }
