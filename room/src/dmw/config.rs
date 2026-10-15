@@ -1,0 +1,782 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! `doommw2.toml` schema and loader (decision D18, sheet 02 section 5.7).
+//!
+//! [`DmwConfig`] is the full typed schema; later sheets only read it. Every field has a
+//! default (`docs/specs/00-overview-and-contracts.md` section 9). Unknown keys log one
+//! warning each and are ignored, a file that does not parse falls back to defaults, and
+//! out-of-range values are clamped with a warning. Nothing here is ever fatal.
+
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+
+use log::{info, warn};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use super::consts::{DoomAmmo, VIEWMODEL_FOV_DEFAULT};
+
+const TARGET: &str = "dmw::config";
+
+/// File name searched for in the working directory and the user config directory.
+pub const CONFIG_FILE_NAME: &str = "doommw2.toml";
+
+/// Entire `doommw2.toml`. Missing sections and keys take their defaults.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DmwConfig {
+    /// `[general]`.
+    pub general: GeneralCfg,
+    /// `[weapons]`: Doom weapon to MW2 weapon mapping.
+    pub weapons: WeaponsCfg,
+    /// `[ammo]`: maxima and pickup scaling per pool.
+    pub ammo: AmmoCfg,
+    /// `[balance]`: damage and speed scaling.
+    pub balance: BalanceCfg,
+    /// `[render]`.
+    pub render: RenderCfg,
+    /// `[input]`.
+    pub input: InputCfg,
+    /// `[audio]`.
+    pub audio: AudioCfg,
+    /// `[hud]`.
+    pub hud: HudCfg,
+}
+
+/// `[general]`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct GeneralCfg {
+    /// Master switch for MW2 mode (decision D15 still applies on top).
+    pub enabled: bool,
+    /// Allow falling back to `packs/fixture` when no real pack is present.
+    pub allow_fixture_pack: bool,
+}
+
+impl Default for GeneralCfg {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            allow_fixture_pack: false,
+        }
+    }
+}
+
+/// `[weapons]`: each value is an MW2 weapon name (for example `"m4_mp"`) or `"vanilla"`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct WeaponsCfg {
+    /// Doom slot 1, `wp_fist`.
+    pub fist: String,
+    /// Doom slot 1, `wp_chainsaw`.
+    pub chainsaw: String,
+    /// Doom slot 2, `wp_pistol`.
+    pub pistol: String,
+    /// Doom slot 3, `wp_shotgun`.
+    pub shotgun: String,
+    /// Doom slot 3, `wp_supershotgun`.
+    pub supershotgun: String,
+    /// Doom slot 4, `wp_chaingun`.
+    pub chaingun: String,
+    /// Doom slot 5, `wp_missile`.
+    pub missile: String,
+    /// Doom slot 6, `wp_plasma`.
+    pub plasma: String,
+    /// Doom slot 7, `wp_bfg`.
+    pub bfg: String,
+}
+
+impl Default for WeaponsCfg {
+    fn default() -> Self {
+        let s = |name: &str| name.to_owned();
+        Self {
+            fist: s("vanilla"),
+            chainsaw: s("vanilla"),
+            pistol: s("usp_mp"),
+            shotgun: s("spas12_mp"),
+            supershotgun: s("ranger_mp"),
+            chaingun: s("m4_mp"),
+            missile: s("rpg_mp"),
+            plasma: s("mg4_mp"),
+            bfg: s("barrett_mp"),
+        }
+    }
+}
+
+/// `[ammo]`. Arrays are indexed by [`DoomAmmo`] (`am_clip` 0, `am_shell` 1, `am_cell` 2,
+/// `am_misl` 3) in memory and written as `{ clip, shell, cell, misl }` tables in TOML.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AmmoCfg {
+    /// Maximum reserve per pool without a backpack.
+    #[serde(with = "ammo_max_table")]
+    pub max: [i32; 4],
+    /// Pickup multiplier per pool.
+    #[serde(with = "ammo_scale_table")]
+    pub pickup_scale: [f32; 4],
+}
+
+impl Default for AmmoCfg {
+    fn default() -> Self {
+        Self {
+            max: [360, 64, 300, 12],
+            pickup_scale: [3.0, 1.0, 0.5, 1.0],
+        }
+    }
+}
+
+impl AmmoCfg {
+    /// Maximum reserve for a pool, or `None` for an index that is not a real pool.
+    pub fn max_for(&self, ammo: DoomAmmo) -> Option<i32> {
+        usize::try_from(ammo)
+            .ok()
+            .and_then(|i| self.max.get(i).copied())
+    }
+}
+
+/// TOML shape of `ammo.max`.
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+struct AmmoMaxTable {
+    clip: i32,
+    shell: i32,
+    cell: i32,
+    misl: i32,
+}
+
+impl Default for AmmoMaxTable {
+    fn default() -> Self {
+        let [clip, shell, cell, misl] = AmmoCfg::default().max;
+        Self {
+            clip,
+            shell,
+            cell,
+            misl,
+        }
+    }
+}
+
+mod ammo_max_table {
+    use super::*;
+
+    pub fn serialize<S: Serializer>(v: &[i32; 4], s: S) -> Result<S::Ok, S::Error> {
+        AmmoMaxTable {
+            clip: v[0],
+            shell: v[1],
+            cell: v[2],
+            misl: v[3],
+        }
+        .serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<[i32; 4], D::Error> {
+        let t = AmmoMaxTable::deserialize(d)?;
+        Ok([t.clip, t.shell, t.cell, t.misl])
+    }
+}
+
+/// TOML shape of `ammo.pickup_scale`.
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+struct AmmoScaleTable {
+    clip: f32,
+    shell: f32,
+    cell: f32,
+    misl: f32,
+}
+
+impl Default for AmmoScaleTable {
+    fn default() -> Self {
+        let [clip, shell, cell, misl] = AmmoCfg::default().pickup_scale;
+        Self {
+            clip,
+            shell,
+            cell,
+            misl,
+        }
+    }
+}
+
+mod ammo_scale_table {
+    use super::*;
+
+    pub fn serialize<S: Serializer>(v: &[f32; 4], s: S) -> Result<S::Ok, S::Error> {
+        AmmoScaleTable {
+            clip: v[0],
+            shell: v[1],
+            cell: v[2],
+            misl: v[3],
+        }
+        .serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<[f32; 4], D::Error> {
+        let t = AmmoScaleTable::deserialize(d)?;
+        Ok([t.clip, t.shell, t.cell, t.misl])
+    }
+}
+
+/// `[balance]`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BalanceCfg {
+    /// Multiplier on MW2 damage against monsters.
+    pub monster_damage_scale: f32,
+    /// Multiplier on MW2 explosion damage.
+    pub explosive_damage_scale: f32,
+    /// Hit height selects a hit location (headshots).
+    pub headshot_enabled: bool,
+    /// Multiplier on MW2 melee damage against monsters.
+    pub melee_damage_scale: f32,
+    /// Call `P_NoiseAlert` on every shot, as Doom does.
+    pub alert_monsters_on_fire: bool,
+    /// MW2 `player_sprintSpeedScale` applied on top of Doom run speed.
+    pub sprint_speed_scale: f32,
+    /// Apply MW2 per-weapon move speed and ADS move speed scales to Doom movement.
+    pub weapon_move_scales: bool,
+}
+
+impl Default for BalanceCfg {
+    fn default() -> Self {
+        Self {
+            monster_damage_scale: 0.35,
+            explosive_damage_scale: 0.6,
+            headshot_enabled: true,
+            melee_damage_scale: 1.0,
+            alert_monsters_on_fire: true,
+            sprint_speed_scale: 1.5,
+            weapon_move_scales: true,
+        }
+    }
+}
+
+/// `[render]`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RenderCfg {
+    /// Present the frame at 4:3 (letterboxed) instead of stretching.
+    pub aspect_correct: bool,
+    /// Viewmodel horizontal FOV in MW2 `cg_fov` space.
+    pub viewmodel_fov: f32,
+    /// Texture quantization dither.
+    pub dither: DitherCfg,
+    /// Per-vertex directional shading term on the viewmodel.
+    pub directional_shading: bool,
+    /// Muzzle flash style.
+    pub muzzle_flash: FlashCfg,
+}
+
+impl Default for RenderCfg {
+    fn default() -> Self {
+        Self {
+            aspect_correct: true,
+            viewmodel_fov: VIEWMODEL_FOV_DEFAULT,
+            dither: DitherCfg::Bayer4,
+            directional_shading: true,
+            muzzle_flash: FlashCfg::Doom,
+        }
+    }
+}
+
+/// `[render] dither`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DitherCfg {
+    /// Nearest palette colour only.
+    None,
+    /// 4x4 Bayer ordered dither.
+    Bayer4,
+}
+
+/// `[render] muzzle_flash`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FlashCfg {
+    /// Doom's flash patch drawn at `tag_flash`.
+    Doom,
+    /// No muzzle flash.
+    None,
+}
+
+/// `[input]`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InputCfg {
+    /// Use raw, unaccelerated mouse motion.
+    pub raw_mouse: bool,
+    /// Grab the cursor as soon as the window opens.
+    pub grab_on_start: bool,
+}
+
+impl Default for InputCfg {
+    fn default() -> Self {
+        Self {
+            raw_mouse: true,
+            grab_on_start: true,
+        }
+    }
+}
+
+/// `[audio]`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AudioCfg {
+    /// Volume multiplier for MW2 weapon sounds.
+    pub mw2_volume: f32,
+    /// Extra mixer channels reserved for MW2 sounds.
+    pub channels: usize,
+}
+
+impl Default for AudioCfg {
+    fn default() -> Self {
+        Self {
+            mw2_volume: 1.0,
+            channels: 8,
+        }
+    }
+}
+
+/// `[hud]`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct HudCfg {
+    /// Draw the spread crosshair.
+    pub crosshair: bool,
+    /// Draw the hit marker.
+    pub hitmarker: bool,
+    /// Show the magazine count in the AMMO widget.
+    pub ammo_counter: bool,
+    /// Show the MW2 weapon name when switching.
+    pub weapon_names: bool,
+}
+
+impl Default for HudCfg {
+    fn default() -> Self {
+        Self {
+            crosshair: true,
+            hitmarker: true,
+            ammo_counter: true,
+            weapon_names: true,
+        }
+    }
+}
+
+impl DmwConfig {
+    /// Finds and parses the config file.
+    ///
+    /// With `explicit` (`-mw2config <file>`) only that file is tried. Otherwise the search is
+    /// `./doommw2.toml`, then `$XDG_CONFIG_HOME/doommw2/doommw2.toml`, falling back to
+    /// `~/.config/doommw2/doommw2.toml`. Returns the config and the file that was found
+    /// (even when it failed to parse and defaults were used).
+    pub fn load(explicit: Option<&Path>) -> (DmwConfig, Option<PathBuf>) {
+        let candidates = candidate_paths(
+            explicit,
+            std::env::var_os("XDG_CONFIG_HOME"),
+            std::env::var_os("HOME"),
+        );
+        Self::load_from(&candidates)
+    }
+
+    /// Like [`DmwConfig::load`] with an explicit candidate list, tried in order.
+    pub fn load_from(candidates: &[PathBuf]) -> (DmwConfig, Option<PathBuf>) {
+        for path in candidates {
+            match std::fs::read_to_string(path) {
+                Ok(text) => {
+                    info!(target: TARGET, "config: {}", path.display());
+                    let cfg = Self::from_toml_str(&text, &path.display().to_string());
+                    return (cfg, Some(path.clone()));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => warn!(target: TARGET, "cannot read {}: {e}", path.display()),
+            }
+        }
+        info!(target: TARGET, "config: defaults (no {CONFIG_FILE_NAME} found)");
+        (DmwConfig::default(), None)
+    }
+
+    /// Parses `text` (read from `origin`, used only in messages), warns about unknown keys,
+    /// clamps out-of-range values. A syntax or type error logs `file:line:col` and returns
+    /// the defaults.
+    pub fn from_toml_str(text: &str, origin: &str) -> DmwConfig {
+        let user_table = match text.parse::<toml::Table>() {
+            Ok(t) => t,
+            Err(e) => return parse_failure(text, origin, &e),
+        };
+        let mut cfg = match toml::from_str::<DmwConfig>(text) {
+            Ok(c) => c,
+            Err(e) => return parse_failure(text, origin, &e),
+        };
+        for key in unknown_keys(&user_table) {
+            warn!(target: TARGET, "unknown key {key}");
+        }
+        cfg.validate();
+        cfg
+    }
+
+    /// Clamps out-of-range values, one warning per clamp.
+    ///
+    /// `viewmodel_fov` to 40..=100, scales to 0.0..=10.0, `channels` to 1..=16. A non-finite
+    /// float is replaced by its default.
+    pub fn validate(&mut self) {
+        let defaults = DmwConfig::default();
+        clamp_f32(
+            "render.viewmodel_fov",
+            &mut self.render.viewmodel_fov,
+            40.0,
+            100.0,
+            defaults.render.viewmodel_fov,
+        );
+        let b = &mut self.balance;
+        let bd = &defaults.balance;
+        clamp_scale(
+            "balance.monster_damage_scale",
+            &mut b.monster_damage_scale,
+            bd.monster_damage_scale,
+        );
+        clamp_scale(
+            "balance.explosive_damage_scale",
+            &mut b.explosive_damage_scale,
+            bd.explosive_damage_scale,
+        );
+        clamp_scale(
+            "balance.melee_damage_scale",
+            &mut b.melee_damage_scale,
+            bd.melee_damage_scale,
+        );
+        clamp_scale(
+            "balance.sprint_speed_scale",
+            &mut b.sprint_speed_scale,
+            bd.sprint_speed_scale,
+        );
+        clamp_scale(
+            "audio.mw2_volume",
+            &mut self.audio.mw2_volume,
+            defaults.audio.mw2_volume,
+        );
+        const POOLS: [&str; 4] = [
+            "ammo.pickup_scale.clip",
+            "ammo.pickup_scale.shell",
+            "ammo.pickup_scale.cell",
+            "ammo.pickup_scale.misl",
+        ];
+        for (i, name) in POOLS.iter().enumerate() {
+            clamp_scale(
+                name,
+                &mut self.ammo.pickup_scale[i],
+                defaults.ammo.pickup_scale[i],
+            );
+        }
+        let channels = self.audio.channels;
+        let clamped = channels.clamp(1, 16);
+        if clamped != channels {
+            warn!(target: TARGET, "audio.channels {channels} out of range 1..=16, clamped to {clamped}");
+            self.audio.channels = clamped;
+        }
+    }
+}
+
+/// Config search order for [`DmwConfig::load`], as a pure function of its inputs.
+pub fn candidate_paths(
+    explicit: Option<&Path>,
+    xdg_config_home: Option<OsString>,
+    home: Option<OsString>,
+) -> Vec<PathBuf> {
+    if let Some(path) = explicit {
+        return vec![path.to_path_buf()];
+    }
+    let mut out = vec![PathBuf::from(CONFIG_FILE_NAME)];
+    let xdg = xdg_config_home.filter(|v| !v.is_empty()).map(PathBuf::from);
+    let base = xdg.or_else(|| {
+        home.filter(|v| !v.is_empty())
+            .map(|h| PathBuf::from(h).join(".config"))
+    });
+    if let Some(base) = base {
+        out.push(base.join("doommw2").join(CONFIG_FILE_NAME));
+    }
+    out
+}
+
+/// Dotted paths of keys in `user` that the schema does not know, in sorted order.
+pub fn unknown_keys(user: &toml::Table) -> Vec<String> {
+    let known = match toml::Table::try_from(DmwConfig::default()) {
+        Ok(t) => t,
+        Err(e) => {
+            warn!(target: TARGET, "cannot build schema table: {e}");
+            return Vec::new();
+        }
+    };
+    let mut out = Vec::new();
+    collect_unknown(user, &known, "", &mut out);
+    out
+}
+
+fn collect_unknown(user: &toml::Table, known: &toml::Table, prefix: &str, out: &mut Vec<String>) {
+    for (key, value) in user {
+        let path = if prefix.is_empty() {
+            key.clone()
+        } else {
+            format!("{prefix}.{key}")
+        };
+        match known.get(key) {
+            None => out.push(path),
+            Some(toml::Value::Table(known_child)) => {
+                if let toml::Value::Table(user_child) = value {
+                    collect_unknown(user_child, known_child, &path, out);
+                }
+            }
+            Some(_) => {}
+        }
+    }
+}
+
+fn parse_failure(text: &str, origin: &str, e: &toml::de::Error) -> DmwConfig {
+    let location = e
+        .span()
+        .map(|span| {
+            let before = &text[..span.start.min(text.len())];
+            let line = before.matches('\n').count() + 1;
+            let col = before.rsplit('\n').next().map_or(0, |l| l.chars().count()) + 1;
+            format!(":{line}:{col}")
+        })
+        .unwrap_or_default();
+    warn!(target: TARGET, "{origin}{location}: {} - using defaults", e.message());
+    DmwConfig::default()
+}
+
+fn clamp_f32(name: &str, value: &mut f32, lo: f32, hi: f32, default: f32) {
+    if !value.is_finite() {
+        warn!(target: TARGET, "{name} is not finite, using default {default}");
+        *value = default;
+        return;
+    }
+    let clamped = value.clamp(lo, hi);
+    if clamped.to_bits() != value.to_bits() {
+        warn!(target: TARGET, "{name} {value} out of range {lo}..={hi}, clamped to {clamped}");
+        *value = clamped;
+    }
+}
+
+fn clamp_scale(name: &str, value: &mut f32, default: f32) {
+    clamp_f32(name, value, 0.0, 10.0, default);
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+
+    use super::*;
+
+    /// Logger that records `dmw::config` warnings so tests can assert on them.
+    struct Capture;
+    static RECORDS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    static CAPTURE: Capture = Capture;
+
+    impl log::Log for Capture {
+        fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+            true
+        }
+        fn log(&self, record: &log::Record<'_>) {
+            if record.target() == TARGET && record.level() <= log::Level::Warn {
+                if let Ok(mut r) = RECORDS.lock() {
+                    r.push(record.args().to_string());
+                }
+            }
+        }
+        fn flush(&self) {}
+    }
+
+    fn capture_init() {
+        // Another test in this process may have installed it already; both cases are fine.
+        let _ = log::set_logger(&CAPTURE);
+        log::set_max_level(log::LevelFilter::Info);
+    }
+
+    fn warnings_containing(needle: &str) -> usize {
+        RECORDS
+            .lock()
+            .map(|r| r.iter().filter(|m| m.contains(needle)).count())
+            .unwrap_or(0)
+    }
+
+    const EXAMPLE: &str = include_str!("../../../doommw2.example.toml");
+
+    #[test]
+    fn example_file_equals_default() {
+        let parsed: DmwConfig = toml::from_str(EXAMPLE).expect("example parses");
+        assert_eq!(parsed, DmwConfig::default());
+        let table: toml::Table = EXAMPLE.parse().expect("example is a table");
+        assert_eq!(unknown_keys(&table), Vec::<String>::new());
+    }
+
+    #[test]
+    fn default_serializes_and_parses_back() {
+        let text = toml::to_string(&DmwConfig::default()).expect("serialize");
+        let back: DmwConfig = toml::from_str(&text).expect("reparse");
+        assert_eq!(back, DmwConfig::default());
+    }
+
+    #[test]
+    fn ammo_is_written_as_pool_tables() {
+        let cfg: DmwConfig =
+            toml::from_str("[ammo.max]\nclip = 100\n[ammo.pickup_scale]\nmisl = 2.5\n")
+                .expect("parses");
+        assert_eq!(cfg.ammo.max, [100, 64, 300, 12]);
+        assert_eq!(cfg.ammo.pickup_scale, [3.0, 1.0, 0.5, 2.5]);
+        assert_eq!(cfg.ammo.max_for(0), Some(100));
+        assert_eq!(cfg.ammo.max_for(5), None);
+    }
+
+    #[test]
+    fn partial_file_keeps_other_defaults() {
+        let cfg = DmwConfig::from_toml_str("[weapons]\npistol = \"deserteagle_mp\"\n", "t");
+        assert_eq!(cfg.weapons.pistol, "deserteagle_mp");
+        assert_eq!(cfg.weapons.shotgun, "spas12_mp");
+        assert_eq!(cfg.render, RenderCfg::default());
+    }
+
+    #[test]
+    fn enums_use_lowercase_names() {
+        let cfg: DmwConfig =
+            toml::from_str("[render]\ndither = \"none\"\nmuzzle_flash = \"none\"\n").expect("ok");
+        assert_eq!(cfg.render.dither, DitherCfg::None);
+        assert_eq!(cfg.render.muzzle_flash, FlashCfg::None);
+    }
+
+    #[test]
+    fn unknown_keys_are_reported_with_dotted_paths() {
+        let table: toml::Table = "bogus = 1\n[balance]\nnope = true\n[ammo.max]\nrockets = 3\n"
+            .parse()
+            .expect("toml");
+        assert_eq!(
+            unknown_keys(&table),
+            ["ammo.max.rockets", "balance.nope", "bogus"]
+        );
+    }
+
+    #[test]
+    fn unknown_key_warns_and_still_parses() {
+        capture_init();
+        let cfg = DmwConfig::from_toml_str(
+            "[render]\nviewmodel_fov = 70.0\nzzz_unknown_render_key = 1\n",
+            "t",
+        );
+        assert_eq!(cfg.render.viewmodel_fov.to_bits(), 70.0f32.to_bits());
+        assert_eq!(
+            warnings_containing("unknown key render.zzz_unknown_render_key"),
+            1
+        );
+    }
+
+    #[test]
+    fn syntax_error_warns_with_location_and_uses_defaults() {
+        capture_init();
+        let cfg = DmwConfig::from_toml_str("[render]\naspect_correct = = false\n", "syntax.toml");
+        assert_eq!(cfg, DmwConfig::default());
+        assert_eq!(warnings_containing("syntax.toml:2:"), 1);
+    }
+
+    #[test]
+    fn type_error_uses_defaults() {
+        capture_init();
+        let cfg = DmwConfig::from_toml_str("[audio]\nchannels = \"many\"\n", "type.toml");
+        assert_eq!(cfg, DmwConfig::default());
+        assert_eq!(warnings_containing("type.toml:2:"), 1);
+    }
+
+    #[test]
+    fn viewmodel_fov_is_clamped() {
+        capture_init();
+        let lo = DmwConfig::from_toml_str("[render]\nviewmodel_fov = 10.0\n", "t");
+        assert_eq!(lo.render.viewmodel_fov.to_bits(), 40.0f32.to_bits());
+        let hi = DmwConfig::from_toml_str("[render]\nviewmodel_fov = 170.0\n", "t");
+        assert_eq!(hi.render.viewmodel_fov.to_bits(), 100.0f32.to_bits());
+        assert!(warnings_containing("render.viewmodel_fov") >= 2);
+    }
+
+    #[test]
+    fn scales_are_clamped_to_zero_through_ten() {
+        capture_init();
+        let cfg = DmwConfig::from_toml_str(
+            "[balance]\nmonster_damage_scale = -1.0\nexplosive_damage_scale = 99.0\n\
+             melee_damage_scale = 11.0\nsprint_speed_scale = -0.5\n\
+             [audio]\nmw2_volume = 50.0\n[ammo.pickup_scale]\nclip = 12.0\nmisl = -3.0\n",
+            "t",
+        );
+        assert_eq!(cfg.balance.monster_damage_scale.to_bits(), 0.0f32.to_bits());
+        assert_eq!(
+            cfg.balance.explosive_damage_scale.to_bits(),
+            10.0f32.to_bits()
+        );
+        assert_eq!(cfg.balance.melee_damage_scale.to_bits(), 10.0f32.to_bits());
+        assert_eq!(cfg.balance.sprint_speed_scale.to_bits(), 0.0f32.to_bits());
+        assert_eq!(cfg.audio.mw2_volume.to_bits(), 10.0f32.to_bits());
+        assert_eq!(cfg.ammo.pickup_scale[0].to_bits(), 10.0f32.to_bits());
+        assert_eq!(cfg.ammo.pickup_scale[3].to_bits(), 0.0f32.to_bits());
+        assert!(warnings_containing("balance.monster_damage_scale") >= 1);
+        assert!(warnings_containing("ammo.pickup_scale.misl") >= 1);
+    }
+
+    #[test]
+    fn non_finite_float_falls_back_to_default() {
+        capture_init();
+        let cfg = DmwConfig::from_toml_str("[render]\nviewmodel_fov = nan\n", "t");
+        assert_eq!(
+            cfg.render.viewmodel_fov.to_bits(),
+            VIEWMODEL_FOV_DEFAULT.to_bits()
+        );
+    }
+
+    #[test]
+    fn channels_are_clamped_to_one_through_sixteen() {
+        capture_init();
+        let lo = DmwConfig::from_toml_str("[audio]\nchannels = 0\n", "t");
+        assert_eq!(lo.audio.channels, 1);
+        let hi = DmwConfig::from_toml_str("[audio]\nchannels = 64\n", "t");
+        assert_eq!(hi.audio.channels, 16);
+        assert!(warnings_containing("audio.channels") >= 2);
+    }
+
+    #[test]
+    fn candidate_order_matches_the_spec() {
+        let explicit = candidate_paths(Some(Path::new("/x/y.toml")), Some("/xdg".into()), None);
+        assert_eq!(explicit, [PathBuf::from("/x/y.toml")]);
+        let xdg = candidate_paths(None, Some("/xdg".into()), Some("/home/u".into()));
+        assert_eq!(
+            xdg,
+            [
+                PathBuf::from("doommw2.toml"),
+                PathBuf::from("/xdg/doommw2/doommw2.toml")
+            ]
+        );
+        let home = candidate_paths(None, Some("".into()), Some("/home/u".into()));
+        assert_eq!(
+            home,
+            [
+                PathBuf::from("doommw2.toml"),
+                PathBuf::from("/home/u/.config/doommw2/doommw2.toml")
+            ]
+        );
+        assert_eq!(
+            candidate_paths(None, None, None),
+            [PathBuf::from("doommw2.toml")]
+        );
+    }
+
+    #[test]
+    fn load_from_uses_the_first_existing_file() {
+        let dir = std::env::temp_dir().join(format!("doommw2-config-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let found = dir.join("found.toml");
+        std::fs::write(&found, "[hud]\ncrosshair = false\n").expect("write");
+        let missing = dir.join("missing.toml");
+
+        let (cfg, used) = DmwConfig::load_from(&[missing.clone(), found.clone()]);
+        assert!(!cfg.hud.crosshair);
+        assert_eq!(used, Some(found.clone()));
+
+        let (cfg, used) = DmwConfig::load_from(&[missing]);
+        assert_eq!(cfg, DmwConfig::default());
+        assert_eq!(used, None);
+
+        std::fs::remove_file(&found).expect("cleanup file");
+        std::fs::remove_dir(&dir).expect("cleanup dir");
+    }
+}

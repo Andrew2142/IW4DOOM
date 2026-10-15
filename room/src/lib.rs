@@ -51,6 +51,7 @@
 #![allow(clippy::needless_range_loop, clippy::explicit_counter_loop)]
 
 pub(crate) mod audio;
+pub mod dmw;
 pub mod doom;
 pub mod headless;
 pub mod types;

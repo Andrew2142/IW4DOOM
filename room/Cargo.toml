@@ -13,7 +13,7 @@ name = "room"
 path = "src/lib.rs"
 
 [[bin]]
-name = "room"
+name = "doommw2"
 path = "src/main.rs"
 
 [features]
@@ -50,6 +50,14 @@ libc = "0.2"
 
 # Optional heap profiler (use with --features dhat-heap).
 dhat = { version = "0.3", optional = true }
+
+# DOOMMW2 crates and shared dependencies (versions pinned in the workspace root).
+dmw_format = { path = "../crates/dmw_format" }
+dmw_weapons = { path = "../crates/dmw_weapons" }
+dmw_viewmodel = { path = "../crates/dmw_viewmodel" }
+glam.workspace = true
+serde.workspace = true
+toml.workspace = true
 
 [dev-dependencies]
 # C layout-guard tests: compiles test_helpers.c to verify C struct offsets

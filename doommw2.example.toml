@@ -1,0 +1,86 @@
+# DOOMMW2 configuration. Copy to doommw2.toml (current directory) or
+# $XDG_CONFIG_HOME/doommw2/doommw2.toml. Every key is shown at its default.
+# Unknown keys are a warning, not an error. Out-of-range values are clamped.
+
+[general]
+# Master switch for MW2 mode. Even when true it is only active with a valid pack,
+# outside netgames, and not while recording or playing a demo.
+enabled = true
+# Allow falling back to packs/fixture (synthetic, no MW2 data) when packs/mw2 is absent.
+allow_fixture_pack = false
+
+[weapons]
+# MW2 weapon name per Doom weapon, or "vanilla" to keep the original Doom weapon.
+fist = "vanilla"
+chainsaw = "vanilla"
+pistol = "usp_mp"
+shotgun = "spas12_mp"
+supershotgun = "ranger_mp"
+chaingun = "m4_mp"
+missile = "rpg_mp"
+plasma = "mg4_mp"
+bfg = "barrett_mp"
+
+[ammo.max]
+# Reserve maximum per ammo pool without a backpack (a backpack doubles it).
+clip = 360
+shell = 64
+cell = 300
+misl = 12
+
+[ammo.pickup_scale]
+# Pickup multiplier per ammo pool (0.0 to 10.0).
+clip = 3.0
+shell = 1.0
+cell = 0.5
+misl = 1.0
+
+[balance]
+# Multiplier on MW2 bullet damage against monsters (0.0 to 10.0).
+monster_damage_scale = 0.35
+# Multiplier on MW2 explosion damage (0.0 to 10.0).
+explosive_damage_scale = 0.6
+# Hit height selects a hit location, so headshots count.
+headshot_enabled = true
+# Multiplier on MW2 melee damage against monsters (0.0 to 10.0).
+melee_damage_scale = 1.0
+# Wake nearby monsters on every shot, as Doom does.
+alert_monsters_on_fire = true
+# MW2 player_sprintSpeedScale applied on top of Doom run speed (0.0 to 10.0).
+sprint_speed_scale = 1.5
+# Apply MW2 per-weapon move speed and ADS move speed scales to Doom movement.
+weapon_move_scales = true
+
+[render]
+# Present the frame at 4:3 (letterboxed) instead of stretching.
+aspect_correct = true
+# Viewmodel horizontal FOV in MW2 cg_fov space (40.0 to 100.0).
+viewmodel_fov = 65.0
+# Texture dither: "bayer4" or "none".
+dither = "bayer4"
+# Directional shading term on the viewmodel.
+directional_shading = true
+# Muzzle flash: "doom" (Doom flash patch at the weapon's flash tag) or "none".
+muzzle_flash = "doom"
+
+[input]
+# Use raw, unaccelerated mouse motion.
+raw_mouse = true
+# Grab the cursor as soon as the window opens.
+grab_on_start = true
+
+[audio]
+# Volume multiplier for MW2 weapon sounds (0.0 to 10.0).
+mw2_volume = 1.0
+# Extra mixer channels reserved for MW2 sounds (1 to 16).
+channels = 8
+
+[hud]
+# Draw the spread crosshair.
+crosshair = true
+# Draw the hit marker.
+hitmarker = true
+# Show the magazine count in the AMMO widget.
+ammo_counter = true
+# Show the MW2 weapon name when switching weapons.
+weapon_names = true

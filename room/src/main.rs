@@ -138,7 +138,7 @@ impl ApplicationHandler for App {
         );
 
         let window_attrs = Window::default_attributes()
-            .with_title("room")
+            .with_title("DOOMMW2")
             .with_inner_size(LogicalSize::new(
                 DOOMGENERIC_RESX as u32,
                 DOOMGENERIC_RESY as u32,
@@ -265,7 +265,7 @@ fn main() {
     // Initialise the logger.  Set `RUST_LOG=debug` for verbose output.
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    log::info!("room – doomgeneric Rust port");
+    log::info!("DOOMMW2 – room-based Doom with MW2 gunplay");
 
     let event_loop = EventLoop::new().expect("failed to create event loop");
 
