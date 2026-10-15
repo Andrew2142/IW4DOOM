@@ -68,3 +68,5 @@ doomgeneric-sys = { path = "../doomgeneric-sys" }
 # Enables the `test-hooks` feature for the integration tests only (they are compiled with
 # dev-dependencies; the shipped `doommw2` binary is not).
 room = { path = ".", features = ["test-hooks"] }
+# PNG encode/decode for the golden-image tooling (sheet 13 section 5.4).
+png.workspace = true

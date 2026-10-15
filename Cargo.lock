@@ -2231,6 +2231,7 @@ dependencies = [
  "glam",
  "libc",
  "log",
+ "png",
  "pollster",
  "rodio",
  "room",
