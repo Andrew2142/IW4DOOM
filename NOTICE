@@ -1,0 +1,37 @@
+DOOMMW2
+
+Copyright DOOMMW2 contributors.
+
+DOOMMW2 is a Doom source port with Modern Warfare 2 (2009) gunplay. The combined work is
+distributed under the GNU General Public License, version 3 or later; see LICENSE.
+
+--------------------------------------------------------------------------------
+Code from room
+--------------------------------------------------------------------------------
+
+Contains code from room (https://github.com/sunsided/room), a Rust port of doomgeneric,
+copied at commit 904acac5fb7d89d7545082c3fab71408176d2404 and licensed under the GNU
+General Public License, version 2 or later; see LICENSE-GPL-2.0. room in turn derives
+from doomgeneric and the id Software Doom source release (GPL-2.0-or-later).
+
+--------------------------------------------------------------------------------
+Code ported from IW4L
+--------------------------------------------------------------------------------
+
+Contains code ported from IW4L (https://github.com/vladtrc/iw4L), Copyright 2026 vladtrc,
+licensed under the Apache License, Version 2.0; see LICENSE-APACHE-2.0. The IW4L crates
+named in docs/specs/00-overview-and-contracts.md (D3) are used as unmodified path
+dependencies and are not copied into this repository. Files ported from IW4L carry an
+Apache-2.0 notice header and are listed below.
+
+| Ported file | Origin |
+|---|---|
+| (none yet; later sheets add rows here and in docs/provenance.md) | |
+
+--------------------------------------------------------------------------------
+Game assets
+--------------------------------------------------------------------------------
+
+No game assets are distributed. This repository contains no Modern Warfare 2 data and no
+commercial Doom IWAD. Freedoom (BSD-3-Clause) is downloaded on demand by
+tools/fetch-freedoom.sh for development and is not committed.
