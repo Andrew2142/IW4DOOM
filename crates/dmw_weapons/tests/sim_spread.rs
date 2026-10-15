@@ -145,13 +145,16 @@ fn t7_9_ads_fraction_and_zoom() {
         }
     }
     let full = full.expect("ADS completes");
-    // ads_in_rate is per millisecond in iw4L (movement_iw4/src/ads_frac.rs:79).
-    let ms = (1.0 / f.combat.ads_in_rate).ceil() as i32;
+    // ads_in_rate is per millisecond in iw4L (movement_iw4/src/ads_frac.rs:79): the fixture
+    // rifle aims in 1 / ads_in_rate = 250 ms, about 9 tics.
+    let ms = (1.0 / f.combat.ads_in_rate).round() as i32;
+    assert_eq!(ms, 250);
     let expected = start + tics_for_ms(start, ms) - 1;
     assert!(
         full.abs_diff(expected) <= 1,
         "ADS full at {full}, expected {expected}"
     );
+    assert!(full - start >= 7, "ADS took only {} tics", full - start + 1);
 
     let view = rig.sim.view_state();
     let d = 2.0
@@ -164,15 +167,23 @@ fn t7_9_ads_fraction_and_zoom() {
     assert!((view.viewmodel_fov_deg - f.fpv.ads_zoom_fov).abs() < 1e-3);
     assert!(!view.overlay_active);
 
-    let mut cleared = false;
+    let out_start = rig.tic;
+    let mut cleared = None;
     for _ in 0..60 {
+        let t = rig.tic;
         let out = rig.step(RIFLE, TicButtons::default());
         if out.ads_frac <= 0.0 {
-            cleared = true;
+            cleared = Some(t);
             break;
         }
     }
-    assert!(cleared);
+    let cleared = cleared.expect("ADS clears");
+    let ms_out = (1.0 / f.combat.ads_out_rate).round() as i32;
+    let expected_out = out_start + tics_for_ms(out_start, ms_out) - 1;
+    assert!(
+        cleared.abs_diff(expected_out) <= 1,
+        "ADS cleared at {cleared}, expected {expected_out}"
+    );
     let view = rig.sim.view_state();
     assert!(view.zoom_hfov_deg.is_none());
     assert!((view.viewmodel_fov_deg - 65.0).abs() < 1e-3);

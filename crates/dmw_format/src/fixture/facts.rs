@@ -109,8 +109,10 @@ fn base_combat(index: i32) -> WeaponCombatFacts {
     c.ads_spread = 0.4;
     c.aim_down_sight = true;
     c.ads_reload_trans_time_ms = 350;
-    c.ads_in_rate = 4.0;
-    c.ads_out_rate = 4.0;
+    // ADS rates are per millisecond, as iw4L stores them (movement_iw4/src/ads_frac.rs adds
+    // `rate * msec`; asset_game stores `1 / (seconds * 1000)`): 250 ms in and out.
+    c.ads_in_rate = 1.0 / 250.0;
+    c.ads_out_rate = 1.0 / 250.0;
     c.melee_damage = 135;
     c.melee_time_ms = 750;
     c.melee_delay_ms = 200;
@@ -138,8 +140,8 @@ fn pistol_combat() -> WeaponCombatFacts {
     c.min_damage = 25;
     c.max_damage_range = 500.0;
     c.min_damage_range = 1200.0;
-    c.ads_in_rate = 1.0 / 0.2;
-    c.ads_out_rate = 1.0 / 0.2;
+    c.ads_in_rate = 1.0 / 200.0;
+    c.ads_out_rate = 1.0 / 200.0;
     c.hip_spread_stand_min = 3.0;
     c.melee_time_ms = 650;
     c
@@ -160,8 +162,8 @@ fn rifle_combat() -> WeaponCombatFacts {
     c.min_damage = 20;
     c.max_damage_range = 1000.0;
     c.min_damage_range = 2000.0;
-    c.ads_in_rate = 1.0 / 0.25;
-    c.ads_out_rate = 1.0 / 0.25;
+    c.ads_in_rate = 1.0 / 250.0;
+    c.ads_out_rate = 1.0 / 250.0;
     c.hip_gun_kick_reduced_kick_bullets = 5;
     c.ads_gun_kick_reduced_kick_bullets = 5;
     c
@@ -218,8 +220,8 @@ fn sniper_combat() -> WeaponCombatFacts {
     c.can_hold_breath = true;
     c.scope_zoom = ScopeZoom::from_fovs([20.0, 10.0, 0.0]);
     c.overlay_reticle = 1;
-    c.ads_in_rate = 1.0 / 0.4;
-    c.ads_out_rate = 1.0 / 0.35;
+    c.ads_in_rate = 1.0 / 400.0;
+    c.ads_out_rate = 1.0 / 350.0;
     c.ads_spread = 0.0;
     c.hip_spread_stand_min = 8.0;
     c.hip_spread_stand_max = 16.0;
@@ -507,7 +509,7 @@ mod tests {
             (1000, 2000)
         );
         assert!((r.fpv.ads_zoom_fov - 50.0).abs() < f32::EPSILON);
-        assert!((r.combat.ads_in_rate - 4.0).abs() < 1e-6);
+        assert!((r.combat.ads_in_rate - 1.0 / 250.0).abs() < 1e-9);
 
         let s = weapon(2).combat;
         assert_eq!((s.weap_class, s.shots_per_fire, s.clip_size), (4, 8, 8));
