@@ -1,0 +1,52 @@
+[package]
+name = "dmw_export"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "Offline exporter: MW2 install to DOOMMW2 pack (sheet 04)."
+
+[workspace]   # standalone: not a member of the root workspace
+
+[dependencies]
+dmw_format = { path = "../../crates/dmw_format" }
+assets = { path = "../../../iw4L/crates/assets" }
+asset_game = { path = "../../../iw4L/crates/asset_game" }
+asset_model = { path = "../../../iw4L/crates/asset_model" }
+asset_anim = { path = "../../../iw4L/crates/asset_anim" }
+asset_audio = { path = "../../../iw4L/crates/asset_audio" }
+asset_material = { path = "../../../iw4L/crates/asset_material" }
+asset_transport = { path = "../../../iw4L/crates/asset_transport" }
+asset_core = { path = "../../../iw4L/crates/asset_core" }
+frame = { path = "../../../iw4L/crates/frame" }
+master_protocol = { path = "../../../iw4L/crates/master_protocol" }
+weapon_iw4 = { path = "../../../iw4L/crates/weapon_iw4" }
+xmodel_runtime = { path = "../../../iw4L/crates/xmodel_runtime" }
+dpvs_iw4 = { path = "../../../iw4L/crates/dpvs_iw4" }
+bevy = { version = "0.20", default-features = false }   # must match iw4L's workspace bevy version exactly
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"
+
+[patch.crates-io]
+# copied from ../iw4L/Cargo.toml at IW4L_REV
+quinn-proto = { git = "https://github.com/quinn-rs/quinn", rev = "f650e0f213b01ea7bebd60023e5df7df65e5c2bd" }
+
+[profile.dev]
+opt-level = 3
+[profile.release]
+debug = 1
+
+# Same lint table as the root workspace (a standalone workspace cannot inherit it).
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "deny"
+todo = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+print_stdout = "deny"
+print_stderr = "deny"
+float_cmp = "warn"
