@@ -1,8 +1,57 @@
 [workspace]
-default-members = ["doomgeneric-sys", "room"]
 members = [
     "c2rust-intermediate",
     "doomgeneric-sys",
     "room",
+    "crates/dmw_format",
+    "crates/dmw_weapons",
+    "crates/dmw_viewmodel",
 ]
+default-members = ["doomgeneric-sys", "room", "crates/dmw_format", "crates/dmw_weapons", "crates/dmw_viewmodel"]
+exclude = ["tools/dmw_export"]
 resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+license = "GPL-3.0-or-later"
+repository = "local"
+
+[workspace.dependencies]
+# iw4L, pinned by IW4L_REV (tools/check-iw4l-rev.sh). Bevy-free crates only.
+weapon_iw4 = { path = "../iw4L/crates/weapon_iw4" }
+movement_iw4 = { path = "../iw4L/crates/movement_iw4" }
+playerstate_iw4 = { path = "../iw4L/crates/playerstate_iw4" }
+math_iw4 = { path = "../iw4L/crates/math_iw4" }
+xmodel_runtime = { path = "../iw4L/crates/xmodel_runtime" }
+anim_iw4 = { path = "../iw4L/crates/anim_iw4" }
+# shared third-party versions
+glam = "0.33.2"          # must equal iw4L's workspace glam so xmodel_runtime types are the same type
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+postcard = { version = "1", features = ["alloc"] }
+png = "0.17"
+hound = "3"
+thiserror = "2"
+log = "0.4"
+toml = "0.8"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "deny"
+todo = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+print_stdout = "deny"
+print_stderr = "deny"
+float_cmp = "warn"
+
+[profile.release]
+debug = 1            # keep line tables for perf work
+[profile.dev.package."*"]
+opt-level = 2        # iw4L math and anim decode are unusably slow at opt-level 0
+[profile.dev.package.room]
+opt-level = 1

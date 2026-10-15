@@ -1,0 +1,22 @@
+[package]
+name = "dmw_weapons"
+version.workspace = true
+edition = "2024"
+license.workspace = true
+description = "DOOMMW2 MW2 weapon simulation bridge and viewmodel animation."
+
+[dependencies]
+dmw_format = { path = "../dmw_format" }
+weapon_iw4.workspace = true
+movement_iw4.workspace = true
+playerstate_iw4.workspace = true
+math_iw4.workspace = true
+xmodel_runtime.workspace = true
+anim_iw4.workspace = true
+glam.workspace = true
+log.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

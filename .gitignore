@@ -6,3 +6,9 @@
 session-*.md
 *.bak
 
+/tools/dmw_export/target
+/packs/
+/wads/
+/.env
+*.dsg
+/doommw2.toml

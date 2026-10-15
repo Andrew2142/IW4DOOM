@@ -1,0 +1,15 @@
+[package]
+name = "dmw_viewmodel"
+version.workspace = true
+edition = "2024"
+license.workspace = true
+description = "DOOMMW2 software viewmodel rasterizer and palette-quantizing retro pipeline."
+
+[dependencies]
+dmw_format = { path = "../dmw_format" }
+glam.workspace = true
+log.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
