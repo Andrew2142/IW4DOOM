@@ -72,6 +72,11 @@ pub extern "C" fn DG_GetKey(_pressed: *mut i32, _doom_key: *mut u8) -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn DG_GetMouse(_dx: *mut i32, _dy: *mut i32, _buttons: *mut u8) -> i32 {
+    0
+}
+
+#[no_mangle]
 pub extern "C" fn DG_SetWindowTitle(_title: *const c_char) {}
 
 // ---------------------------------------------------------------------------
