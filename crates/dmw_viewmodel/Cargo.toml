@@ -11,5 +11,8 @@ glam.workspace = true
 log.workspace = true
 thiserror.workspace = true
 
+[dev-dependencies]
+png.workspace = true   # golden PNGs via room/tests/support/golden.rs
+
 [lints]
 workspace = true
