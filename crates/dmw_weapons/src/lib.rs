@@ -12,10 +12,16 @@ use std::collections::BTreeMap;
 
 use dmw_format::{DmwWeaponId, DoomAmmo, Pack};
 
+pub mod anim;
 pub mod breath;
+pub mod clip_scheduler;
+pub mod controller;
+pub mod convert;
 pub mod events;
 pub mod inventory;
+pub mod notetracks;
 pub mod placement;
+mod pose;
 pub mod rng;
 pub mod shadow;
 mod sim;
@@ -24,6 +30,7 @@ pub mod switch;
 pub mod view_kick;
 pub mod view_sway;
 
+pub use anim::{AnimError, SurfaceMask, ViewmodelAnimator, ViewmodelPose};
 pub use dmw_format::consts;
 pub use events::{MeleeRequest, ShotRequest, SimEvent, SoundCue};
 pub use inventory::{Inventory, SimSave};
