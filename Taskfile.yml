@@ -10,7 +10,7 @@ tasks:
     cmds:
       - cmd: tools/check-iw4l-rev.sh || echo "WARNING iw4L is not at the pinned revision (task iw4l-rev); builds continue" >&2
         ignore_error: true
-      - cargo check --workspace --all-targets
+      - cargo check --workspace --exclude c2rust-intermediate --all-targets
 
   lint:
     desc: Clippy (new crates with -D warnings, engine crate gated on room/src/dmw) then crate boundaries
@@ -31,16 +31,17 @@ tasks:
     cmds:
       - cmd: |
           if [ "$(head -c 4 doom1.wad 2>/dev/null)" = "IWAD" ]; then
-            cargo test --workspace
+            cargo test --workspace --exclude c2rust-intermediate
           else
             echo "task test: doom1.wad is missing or a Git LFS pointer, skipping demo_playthrough (see README, shareware doom1.wad)"
-            cargo test --workspace -- --skip demo_playthrough
+            cargo test --workspace --exclude c2rust-intermediate -- --skip demo_playthrough
           fi
 
   run:
     desc: "Run the game: task run -- -warp 1 1"
     cmds:
-      - cargo run --release --bin doommw2 -- -iwad ${DMW_IWAD:-wads/freedoom1.wad} {{.CLI_ARGS}}
+      # -mb 32: room's default 6 MiB zone is too small for the Freedoom IWADs (Z_Malloc failure).
+      - cargo run --release --bin doommw2 -- -iwad ${DMW_IWAD:-wads/freedoom1.wad} -mb 32 {{.CLI_ARGS}}
 
   run-fixture:
     desc: Run with the in-memory synthetic fixture pack (needs sheets 03 and 08)

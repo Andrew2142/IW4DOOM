@@ -358,4 +358,16 @@ debug = 1
 
 ## 11. Contract changes requested
 
-None.
+Contract change (00), for the lead to fold into a Revision:
+
+1. **Minimum Rust version.** 00 §4.1 (`rust-toolchain.toml`: "channel = stable, >= 1.85") and 01 §5.1 ("Minimum 1.85") hold for the engine and the three new crates, which build on 1.95. The exporter does not: iw4L pins Bevy 0.20.0, which declares `rust-version = 1.97.1` (`cargo build` in `tools/dmw_export` refuses on 1.95.0). State the exporter's minimum as 1.97.1 (or "whatever iw4L's Bevy pin requires") in 00 §4.1 / D5. The iw4L inheritance fallback (§5.2) was not needed: path dependencies resolve their own workspace root.
+
+Deviations from this sheet's own text (not 00 contracts), made because the literal text cannot pass on this machine; reported so the lead can amend the sheet:
+
+2. `task check` / `task test` use `--workspace --exclude c2rust-intermediate`. That reference crate has `#![feature(extern_types)]` and needs nightly, so `--workspace` fails on stable (it is also outside room's own `default-members`).
+3. `task lint` does not run `cargo clippy --workspace --all-targets -- -D warnings`. The copied Doom port has hundreds of pre-existing findings (static_mut_refs, precedence, unnecessary unsafe) that its crate-level allow list does not cover, and c2rust-intermediate does not build on stable. `task lint` instead runs `-D warnings` on the three new crates, `tools/check-room-lint.sh` (fails on any clippy diagnostic inside `room/src/dmw/`, or a failed build), and `tools/check-deps.sh`.
+4. `tools/check-deps.sh` applies the "no iw4L crates" rule for `dmw_viewmodel` to its direct dependencies only, because `dmw_format` (allowed to use `weapon_iw4`) is a dependency of `dmw_viewmodel` and drags it in transitively.
+5. `task run` passes `-mb 32`. With room's 6 MiB default zone, Freedoom aborts at startup with `Z_Malloc: failed on allocation` (reproduced on the unmodified import commit). Headless engine tests that load Freedoom (sheet 13) need the same flag, or a change to `DEFAULT_RAM` in `i_system.rs`.
+6. `crates/dmw_format/src/consts.rs` (sheet 03's file, 00 §6.1) was created with 00 §5.1–5.4 verbatim because `room/src/dmw/consts.rs` must re-export it in this sheet. Sheet 03 should extend it, not recreate it.
+7. `DG_GetMouse` (00 §7.5 row for `I_GetEvent`) is a C-ABI platform callback owned by sheet 05; there is no stub for it in `hooks.rs`.
+8. The engine overrides the window title through `DG_SetWindowTitle` once Doom initialises (the title becomes the IWAD name, for example "Freedoom: Phase 1"). Only the initial title is `DOOMMW2`; room does the same with `room`.

@@ -28,7 +28,7 @@ MW2 game data never enters this repository. An MW2 installation is only needed t
   ```
 
   Without it `cargo check` fails on the path dependencies. `task iw4l-rev` verifies the checkout.
-- The exporter additionally needs the Bevy build dependencies of iw4L (Wayland, xkbcommon, udev development files on Linux) and a Rust toolchain new enough for the Bevy version iw4L pins (currently Rust 1.97.1).
+- The exporter additionally needs the Bevy build dependencies of iw4L (Wayland, xkbcommon, udev development files on Linux) and a Rust toolchain new enough for the Bevy version iw4L pins (Bevy 0.20.0 declares Rust 1.97.1; on older toolchains `cargo build --ignore-rust-version` was the only thing tried).
 
 ## Commands
 
@@ -38,7 +38,7 @@ MW2 game data never enters this repository. An MW2 installation is only needed t
 | `task lint` | clippy with warnings denied, then `tools/check-deps.sh` (crate boundaries) |
 | `task test` | all tests; `demo_playthrough` only when `doom1.wad` is a real WAD |
 | `task fetch-wads` | download the pinned Freedoom IWADs into `wads/` |
-| `task run -- -warp 1 1` | run the game on Freedoom (`DMW_IWAD` overrides the IWAD) |
+| `task run -- -warp 1 1` | run the game on Freedoom (`DMW_IWAD` overrides the IWAD); passes `-mb 32` because room's default 6 MiB zone is too small for the Freedoom IWADs |
 | `task fixture-pack` | write the synthetic fixture pack (after sheet 03) |
 | `task export` | export an MW2 install to `packs/mw2` (needs `DMW_MW2_GAMES`, after sheet 04) |
 | `task ci` | `check`, `lint`, `test` |

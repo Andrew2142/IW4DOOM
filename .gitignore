@@ -12,3 +12,4 @@ session-*.md
 /.env
 *.dsg
 /doommw2.toml
+/.default.cfg
