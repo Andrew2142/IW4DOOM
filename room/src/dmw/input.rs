@@ -321,6 +321,25 @@ pub(crate) fn force_run() -> bool {
     mode::level_active()
 }
 
+/// Copies the `doommw2.toml` `[input]` bindings into the `m_controls` statics (the runtime
+/// values read above). Called once by sheet 08's `on_engine_init`.
+pub(crate) fn apply_bindings(cfg: &crate::dmw::config::InputCfg) {
+    // SAFETY: plain ints on the single engine thread; no reference to them is live.
+    unsafe {
+        mc::key_dmw_reload = cfg.key_dmw_reload.0;
+        mc::key_dmw_ads = cfg.key_dmw_ads.0;
+        mc::mouseb_dmw_ads = cfg.mouseb_dmw_ads;
+        mc::key_dmw_sprint = cfg.key_dmw_sprint.0;
+        mc::key_dmw_melee = cfg.key_dmw_melee.0;
+        mc::mouseb_dmw_melee = cfg.mouseb_dmw_melee;
+        mc::key_dmw_swap = cfg.key_dmw_swap.0;
+        mc::mouse_dmw_look = c_int::from(cfg.mouse_dmw_look);
+        mc::mouse_dmw_invert = c_int::from(cfg.mouse_dmw_invert);
+        mc::mouse_dmw_pitch_sens = cfg.mouse_dmw_pitch_sens;
+    }
+    debug!(target: TARGET, "bindings from doommw2.toml applied");
+}
+
 // ---------------------------------------------------------------------------
 // Binding conflicts
 // ---------------------------------------------------------------------------

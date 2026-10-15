@@ -185,24 +185,21 @@ pub fn captured_log() -> Vec<String> {
 }
 
 // ---------------------------------------------------------------------------
-// Placeholders for contracts that later sheets implement
+// Simulation state (sheet 07 types, sheet 08 `test-hooks` accessors)
 // ---------------------------------------------------------------------------
 
-/// Placeholder for `dmw_weapons::ViewState` (00 section 7.2, sheet 07).
-///
-/// TODO(sheet 07/08): delete this type and re-export `dmw_weapons::ViewState`; [`Harness::sim_view`]
-/// keeps its signature.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct ViewState {}
+/// The simulation's presentation snapshot (00 section 7.2).
+pub use dmw_weapons::ViewState;
+/// The events the simulation reports (00 section 7.2).
+pub use dmw_weapons::SimEvent;
 
-/// Placeholder for one `SimEvent` recorded by the engine's `test-hooks` ring buffer
-/// (sheet 13 section 5.2, owned by sheet 08).
-///
-/// TODO(sheet 08): carry the real `dmw_weapons::SimEvent` (and the tic it happened on).
+/// One `SimEvent` recorded by the engine's `test-hooks` ring buffer (sheet 08 section 5.13).
 #[derive(Debug, Clone, PartialEq)]
 pub struct RecordedEvent {
     /// Level tic (`leveltime`) the event was produced on.
     pub tic: i32,
+    /// The event.
+    pub event: SimEvent,
 }
 
 // ---------------------------------------------------------------------------
@@ -251,9 +248,8 @@ impl Harness {
     /// call returns once the level is running; without it the engine is left at the title
     /// screen and [`Harness::new_game`] starts a level.
     ///
-    /// `-fixturepack` is passed through to the engine untouched.
-    /// TODO(sheet 08): the engine starts honouring `-fixturepack` / `-nomw2` in
-    /// `on_engine_init`; until then they have no effect.
+    /// `-fixturepack` (in-memory fixture pack, MW2 mode on) and `-nomw2` are honoured by the
+    /// engine's `on_engine_init` (sheet 08).
     pub fn start(args: &[&str]) -> Harness {
         assert!(
             !STARTED.swap(true, Ordering::SeqCst),
@@ -442,19 +438,17 @@ impl Harness {
         room::dmw::ext::reset_level();
     }
 
-    /// Forces MW2 mode for the level via the `test-hooks` override: `Some(true)` stands in for
-    /// "pack loaded and enabled", `Some(false)` for `-nomw2`, `None` for the engine's gating.
-    /// TODO(sheet 08): prefer `-fixturepack` / `-nomw2` arguments once real gating exists.
+    /// Forces MW2 mode for the level via the `test-hooks` override: `Some(true)` turns input
+    /// and freelook on without a pack, `Some(false)` turns everything off (like `-nomw2`),
+    /// `None` returns to the engine's gating. The weapon glue needs a real pack: start with
+    /// `-fixturepack` for weapon tests.
     pub fn set_mw2_mode(&mut self, forced: Option<bool>) {
         room::dmw::mode::test_force_level_active(forced);
     }
 
-    /// The simulation's view state through `dmw::with_state`.
-    ///
-    /// TODO(sheet 08): returns `None` until `DmwState` owns a `WeaponSim`; then map it to
-    /// `dmw_weapons::ViewState` (sheet 07).
+    /// The simulation's view state (`None` without a pack).
     pub fn sim_view(&self) -> Option<ViewState> {
-        room::dmw::with_state(|_state| ViewState::default())
+        room::dmw::test_api::view_state()
     }
 
     /// Moves the player (`P_TeleportMove`, which telefrags whatever stands there) and turns
@@ -555,9 +549,8 @@ impl Harness {
 
     /// Gives weapons, ammo, armour and keys through the engine's own `IDKFA` cheat path
     /// (key events), so it works exactly like a player typing it. Needs a non-nightmare skill.
-    ///
-    /// TODO(sheet 08): also fill the MW2 inventory (magazines for every mapped weapon) once the
-    /// MW2 state exists; today only Doom's inventory changes.
+    /// In MW2 mode the next tic's ownership sync gives every mapped MW2 weapon a full magazine
+    /// (sheet 08 section 5.4); this runs that tic before returning.
     pub fn give_all(&mut self) {
         for c in b"idkfa" {
             self.key(*c, true);
@@ -594,11 +587,18 @@ impl Harness {
         }
     }
 
-    /// `SimEvent`s of the last tics, recorded by the engine's `test-hooks` ring buffer.
-    ///
-    /// TODO(sheet 08): returns an empty list until sheet 08 exposes the ring buffer.
+    /// `SimEvent`s of the last tics (at most 256), recorded by the engine's `test-hooks` ring
+    /// buffer, oldest first.
     pub fn events(&self) -> Vec<RecordedEvent> {
-        Vec::new()
+        room::dmw::test_api::events()
+            .into_iter()
+            .map(|(tic, event)| RecordedEvent { tic, event })
+            .collect()
+    }
+
+    /// Empties the engine's event ring.
+    pub fn clear_events(&mut self) {
+        room::dmw::test_api::clear_events();
     }
 
     /// The captured `dmw::*` log lines (also dumped automatically when a test panics).

@@ -1318,6 +1318,8 @@ pub unsafe extern "C" fn G_DoLoadLevel() {
     if testcontrols != 0 {
         players[consoleplayer as usize].message = c"Press escape to quit.".as_ptr().cast_mut();
     }
+
+    crate::dmw::hooks::on_level_start();
 }
 
 // ---------------------------------------------------------------------------
@@ -2256,6 +2258,7 @@ pub unsafe extern "C" fn G_DoLoadGame() {
     if P_ReadSaveGameEOF() == 0 {
         I_Error(c"Bad savegame".as_ptr());
     }
+    crate::dmw::hooks::load_extension();
 
     libc::fclose(save_stream);
 
@@ -2331,6 +2334,7 @@ pub unsafe extern "C" fn G_DoSaveGame() {
     P_ArchiveThinkers();
     P_ArchiveSpecials();
     P_WriteSaveGameEOF();
+    crate::dmw::hooks::save_extension();
 
     if vanilla_savegame_limit != 0 && libc::ftell(save_stream) > SAVEGAMESIZE {
         I_Error(c"Savegame buffer overrun".as_ptr());
@@ -2504,6 +2508,7 @@ pub unsafe extern "C" fn G_InitNew(skill: skill_t, episode: c_int, map: c_int) {
     skytexture = R_TextureNumForName(DEH_String(skytexturename) as *mut c_char);
 
     G_DoLoadLevel();
+    crate::dmw::hooks::on_new_game();
 }
 
 // ---------------------------------------------------------------------------

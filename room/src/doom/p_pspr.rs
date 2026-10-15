@@ -181,6 +181,10 @@ pub unsafe extern "C" fn P_CalcSwing(player: *mut PlayerT) {
 /// `player` must be a valid, non-null pointer to an initialised `PlayerT`.
 #[no_mangle]
 pub unsafe extern "C" fn P_BringUpWeapon(player: *mut PlayerT) {
+    if crate::dmw::hooks::on_bring_up_weapon(player) {
+        return;
+    }
+
     if (*player).pendingweapon == wp_nochange {
         (*player).pendingweapon = (*player).readyweapon;
     }

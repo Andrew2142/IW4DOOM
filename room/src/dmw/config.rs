@@ -13,6 +13,11 @@ use log::{info, warn};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::consts::{DoomAmmo, VIEWMODEL_FOV_DEFAULT};
+use crate::doom::doomkeys::{
+    KEY_BACKSPACE, KEY_DEL, KEY_DOWNARROW, KEY_END, KEY_ENTER, KEY_F1, KEY_F10, KEY_F2, KEY_F3,
+    KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_HOME, KEY_INS, KEY_LEFTARROW, KEY_PGDN,
+    KEY_PGUP, KEY_RALT, KEY_RCTRL, KEY_RIGHTARROW, KEY_RSHIFT, KEY_TAB, KEY_UPARROW,
+};
 
 const TARGET: &str = "dmw::config";
 
@@ -297,6 +302,10 @@ pub enum FlashCfg {
 }
 
 /// `[input]`.
+///
+/// The ten DOOMMW2 bindings (00 section 8.3) live here instead of `default.cfg`, which this
+/// engine never reads or writes (sheet 05 section 11 item 1). `on_engine_init` copies them into
+/// the `m_controls` statics, which stay the runtime values.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct InputCfg {
@@ -304,6 +313,26 @@ pub struct InputCfg {
     pub raw_mouse: bool,
     /// Grab the cursor as soon as the window opens.
     pub grab_on_start: bool,
+    /// Reload key.
+    pub key_dmw_reload: KeyBind,
+    /// ADS key (unbound by default; ADS is on the right mouse button).
+    pub key_dmw_ads: KeyBind,
+    /// ADS mouse button (0 left, 1 right, 2 middle, 3 mouse4, 4 mouse5; -1 unbound).
+    pub mouseb_dmw_ads: i32,
+    /// Sprint / hold-breath key.
+    pub key_dmw_sprint: KeyBind,
+    /// Melee key.
+    pub key_dmw_melee: KeyBind,
+    /// Melee mouse button.
+    pub mouseb_dmw_melee: i32,
+    /// Last-weapon key.
+    pub key_dmw_swap: KeyBind,
+    /// Mouse Y controls pitch (`false` = vanilla forward/back).
+    pub mouse_dmw_look: bool,
+    /// Invert pitch.
+    pub mouse_dmw_invert: bool,
+    /// Pitch sensitivity, same scale as Doom's mouse sensitivity.
+    pub mouse_dmw_pitch_sens: i32,
 }
 
 impl Default for InputCfg {
@@ -311,7 +340,133 @@ impl Default for InputCfg {
         Self {
             raw_mouse: true,
             grab_on_start: true,
+            key_dmw_reload: KeyBind(i32::from(b'r')),
+            key_dmw_ads: KeyBind::UNBOUND,
+            mouseb_dmw_ads: 1,
+            key_dmw_sprint: KeyBind(i32::from(KEY_RSHIFT)),
+            key_dmw_melee: KeyBind(i32::from(b'v')),
+            mouseb_dmw_melee: 3,
+            key_dmw_swap: KeyBind(i32::from(b'q')),
+            mouse_dmw_look: true,
+            mouse_dmw_invert: false,
+            mouse_dmw_pitch_sens: 5,
         }
+    }
+}
+
+/// Highest mouse button index Doom tracks (`MAX_MOUSE_BUTTONS - 1`).
+pub const MAX_MOUSE_BUTTON: i32 = 7;
+
+/// A Doom key code (`doomkeys.h` encoding), `-1` when unbound.
+///
+/// In TOML a binding is either a string or an integer key code. Strings are a single
+/// printable character (`"r"`), `"none"`, or one of the names in [`KEY_NAMES`] (`"rshift"`,
+/// `"f5"`, `"uparrow"`, ...). It is written back as a name or character when one exists.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct KeyBind(pub i32);
+
+impl KeyBind {
+    /// No key.
+    pub const UNBOUND: KeyBind = KeyBind(-1);
+
+    /// Parses the string form; `None` for an unknown name.
+    pub fn from_name(name: &str) -> Option<KeyBind> {
+        let lower = name.trim().to_ascii_lowercase();
+        if lower.is_empty() || lower == "none" || lower == "unbound" {
+            return Some(KeyBind::UNBOUND);
+        }
+        if let Some(&(_, code)) = KEY_NAMES.iter().find(|(n, _)| *n == lower) {
+            return Some(KeyBind(i32::from(code)));
+        }
+        let mut chars = lower.chars();
+        match (chars.next(), chars.next()) {
+            (Some(c), None) if c.is_ascii_graphic() => Some(KeyBind(c as i32)),
+            _ => None,
+        }
+    }
+
+    /// The preferred string form, or `None` when the code has no name (written as a number).
+    pub fn name(self) -> Option<String> {
+        if self.0 < 0 {
+            return Some("none".to_owned());
+        }
+        if let Some(&(n, _)) = KEY_NAMES.iter().find(|(_, c)| i32::from(*c) == self.0) {
+            return Some(n.to_owned());
+        }
+        u8::try_from(self.0)
+            .ok()
+            .filter(|b| b.is_ascii_graphic() && !b.is_ascii_uppercase())
+            .map(|b| char::from(b).to_string())
+    }
+}
+
+/// Names accepted for non-printable keys (lower case), with their Doom key codes. The first
+/// name of a code is the one written back.
+pub const KEY_NAMES: [(&str, u8); 30] = [
+    ("rshift", KEY_RSHIFT),
+    ("shift", KEY_RSHIFT),
+    ("rctrl", KEY_RCTRL),
+    ("ctrl", KEY_RCTRL),
+    ("ralt", KEY_RALT),
+    ("alt", KEY_RALT),
+    ("space", b' '),
+    ("tab", KEY_TAB),
+    ("enter", KEY_ENTER),
+    ("backspace", KEY_BACKSPACE),
+    ("uparrow", KEY_UPARROW),
+    ("downarrow", KEY_DOWNARROW),
+    ("leftarrow", KEY_LEFTARROW),
+    ("rightarrow", KEY_RIGHTARROW),
+    ("home", KEY_HOME),
+    ("end", KEY_END),
+    ("pgup", KEY_PGUP),
+    ("pgdn", KEY_PGDN),
+    ("ins", KEY_INS),
+    ("del", KEY_DEL),
+    ("f1", KEY_F1),
+    ("f2", KEY_F2),
+    ("f3", KEY_F3),
+    ("f4", KEY_F4),
+    ("f5", KEY_F5),
+    ("f6", KEY_F6),
+    ("f7", KEY_F7),
+    ("f8", KEY_F8),
+    ("f9", KEY_F9),
+    ("f10", KEY_F10),
+];
+
+impl Serialize for KeyBind {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        match self.name() {
+            Some(n) => s.serialize_str(&n),
+            None => s.serialize_i64(i64::from(self.0)),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for KeyBind {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl serde::de::Visitor<'_> for Visitor {
+            type Value = KeyBind;
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a key name such as \"r\" or \"rshift\", \"none\", or a key code")
+            }
+            fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<KeyBind, E> {
+                match v {
+                    -1 => Ok(KeyBind::UNBOUND),
+                    0..=255 => Ok(KeyBind(v as i32)),
+                    _ => Err(E::custom(format!("key code {v} out of range -1..=255"))),
+                }
+            }
+            fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<KeyBind, E> {
+                self.visit_i64(i64::try_from(v).unwrap_or(i64::MAX))
+            }
+            fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<KeyBind, E> {
+                KeyBind::from_name(v).ok_or_else(|| E::custom(format!("unknown key name \"{v}\"")))
+            }
+        }
+        d.deserialize_any(Visitor)
     }
 }
 
@@ -463,6 +618,23 @@ impl DmwConfig {
                 &mut self.ammo.pickup_scale[i],
                 defaults.ammo.pickup_scale[i],
             );
+        }
+        let inp = &mut self.input;
+        for (name, button) in [
+            ("input.mouseb_dmw_ads", &mut inp.mouseb_dmw_ads),
+            ("input.mouseb_dmw_melee", &mut inp.mouseb_dmw_melee),
+        ] {
+            let clamped = (*button).clamp(-1, MAX_MOUSE_BUTTON);
+            if clamped != *button {
+                warn!(target: TARGET, "{name} {button} out of range -1..={MAX_MOUSE_BUTTON}, clamped to {clamped}");
+                *button = clamped;
+            }
+        }
+        let sens = inp.mouse_dmw_pitch_sens;
+        let clamped = sens.clamp(0, 50);
+        if clamped != sens {
+            warn!(target: TARGET, "input.mouse_dmw_pitch_sens {sens} out of range 0..=50, clamped to {clamped}");
+            inp.mouse_dmw_pitch_sens = clamped;
         }
         let channels = self.audio.channels;
         let clamped = channels.clamp(1, 16);
@@ -732,6 +904,58 @@ mod tests {
         let hi = DmwConfig::from_toml_str("[audio]\nchannels = 64\n", "t");
         assert_eq!(hi.audio.channels, 16);
         assert!(warnings_containing("audio.channels") >= 2);
+    }
+
+    #[test]
+    fn key_bindings_accept_names_characters_and_codes() {
+        let cfg: DmwConfig = toml::from_str(
+            "[input]\nkey_dmw_reload = \"T\"\nkey_dmw_ads = \"rctrl\"\n\
+             key_dmw_sprint = 32\nkey_dmw_melee = \"none\"\nkey_dmw_swap = -1\n",
+        )
+        .expect("parses");
+        assert_eq!(cfg.input.key_dmw_reload, KeyBind(i32::from(b't')));
+        assert_eq!(cfg.input.key_dmw_ads, KeyBind(i32::from(KEY_RCTRL)));
+        assert_eq!(cfg.input.key_dmw_sprint, KeyBind(32));
+        assert_eq!(cfg.input.key_dmw_melee, KeyBind::UNBOUND);
+        assert_eq!(cfg.input.key_dmw_swap, KeyBind::UNBOUND);
+        assert!(toml::from_str::<DmwConfig>("[input]\nkey_dmw_reload = \"bogus\"\n").is_err());
+        assert!(toml::from_str::<DmwConfig>("[input]\nkey_dmw_reload = 300\n").is_err());
+    }
+
+    #[test]
+    fn key_binding_defaults_match_the_contract() {
+        // 00 section 8.3.
+        let i = InputCfg::default();
+        assert_eq!(i.key_dmw_reload.0, 114);
+        assert_eq!(i.key_dmw_ads.0, -1);
+        assert_eq!(i.mouseb_dmw_ads, 1);
+        assert_eq!(i.key_dmw_sprint.0, i32::from(KEY_RSHIFT));
+        assert_eq!(i.key_dmw_melee.0, 118);
+        assert_eq!(i.mouseb_dmw_melee, 3);
+        assert_eq!(i.key_dmw_swap.0, 113);
+        assert!(i.mouse_dmw_look);
+        assert!(!i.mouse_dmw_invert);
+        assert_eq!(i.mouse_dmw_pitch_sens, 5);
+        for code in [-1, 0, 32, 65, 114, i32::from(KEY_RSHIFT), i32::from(KEY_F5), 200] {
+            let k = KeyBind(code);
+            let back = match k.name() {
+                Some(n) => KeyBind::from_name(&n),
+                None => Some(k),
+            };
+            assert_eq!(back, Some(k), "code {code}");
+        }
+    }
+
+    #[test]
+    fn mouse_buttons_and_pitch_sens_are_clamped() {
+        capture_init();
+        let cfg = DmwConfig::from_toml_str(
+            "[input]\nmouseb_dmw_ads = 12\nmouseb_dmw_melee = -5\nmouse_dmw_pitch_sens = 99\n",
+            "t",
+        );
+        assert_eq!(cfg.input.mouseb_dmw_ads, MAX_MOUSE_BUTTON);
+        assert_eq!(cfg.input.mouseb_dmw_melee, -1);
+        assert_eq!(cfg.input.mouse_dmw_pitch_sens, 50);
     }
 
     #[test]

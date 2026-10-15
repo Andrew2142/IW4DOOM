@@ -1806,6 +1806,8 @@ pub extern "C" fn D_DoomMain() {
         println!("ST_Init: Init status bar.");
         ST_Init();
 
+        crate::dmw::hooks::on_engine_init();
+
         // Store demo check
         if gamemode == d_mode::commercial && W_CheckNumForName(c"map01".as_ptr()) < 0 {
             storedemo = 1;

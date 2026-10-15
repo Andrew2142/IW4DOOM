@@ -241,16 +241,18 @@ pub extern "C" fn P_MovePlayer(player: *mut PlayerT) {
         // Do not let the player control movement if not onground.
         onground = ((*mo).z <= (*mo).floorz) as c_int;
 
+        let (forward_thrust, side_thrust) = crate::dmw::hooks::scale_move(
+            player,
+            cmd.forwardmove as fixed_t * 2048,
+            cmd.sidemove as fixed_t * 2048,
+        );
+
         if cmd.forwardmove != 0 && onground != 0 {
-            P_Thrust(player, (*mo).angle, cmd.forwardmove as fixed_t * 2048);
+            P_Thrust(player, (*mo).angle, forward_thrust);
         }
 
         if cmd.sidemove != 0 && onground != 0 {
-            P_Thrust(
-                player,
-                (*mo).angle.wrapping_sub(ANG90),
-                cmd.sidemove as fixed_t * 2048,
-            );
+            P_Thrust(player, (*mo).angle.wrapping_sub(ANG90), side_thrust);
         }
 
         // C: player->mo->state == &states[S_PLAY]
@@ -430,8 +432,10 @@ pub extern "C" fn P_PlayerThink(player: *mut PlayerT) {
             (*player).usedown = 0;
         }
 
-        // Cycle psprites
-        P_MovePsprites(player);
+        // Cycle psprites (unless the MW2 weapon sim owns the weapon this tic)
+        if !crate::dmw::hooks::on_player_think(player) {
+            P_MovePsprites(player);
+        }
 
         // Counters, time dependent power ups.
         // Strength counts up to diminish fade.

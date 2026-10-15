@@ -2235,11 +2235,13 @@ dependencies = [
  "log",
  "png",
  "pollster",
+ "postcard",
  "rodio",
  "room",
  "rustysynth",
  "serde",
  "toml",
+ "weapon_iw4",
  "wgpu",
  "winit",
 ]

@@ -68,6 +68,29 @@ muzzle_flash = "doom"
 raw_mouse = true
 # Grab the cursor as soon as the window opens.
 grab_on_start = true
+# DOOMMW2 bindings (Doom's default.cfg is not read by this engine). A key is a single
+# character ("r"), a name ("rshift", "rctrl", "ralt", "space", "tab", "enter", "backspace",
+# "uparrow", "downarrow", "leftarrow", "rightarrow", "home", "end", "pgup", "pgdn", "ins",
+# "del", "f1".."f10"), "none", or a Doom key code 0..255.
+# Mouse buttons: 0 left, 1 right, 2 middle, 3 mouse4, 4 mouse5 (up to 7), -1 unbound.
+# Reload.
+key_dmw_reload = "r"
+# Aim down sights on a key (unbound; ADS is on the right mouse button).
+key_dmw_ads = "none"
+mouseb_dmw_ads = 1
+# Sprint; while aiming down sights it holds breath instead.
+key_dmw_sprint = "rshift"
+# Melee.
+key_dmw_melee = "v"
+mouseb_dmw_melee = 3
+# Switch to the last weapon.
+key_dmw_swap = "q"
+# Mouse Y controls pitch (false = vanilla forward/back movement).
+mouse_dmw_look = true
+# Invert pitch.
+mouse_dmw_invert = false
+# Pitch sensitivity, same scale as Doom's mouse sensitivity (0 to 50).
+mouse_dmw_pitch_sens = 5
 
 [audio]
 # Volume multiplier for MW2 weapon sounds (0.0 to 10.0).

@@ -374,6 +374,7 @@ pub unsafe extern "C" fn P_GiveAmmo(player: *mut PlayerT, ammo: c_int, num: c_in
 /// pass an existing borrow without re-deriving a second `&mut` from the
 /// same raw pointer (which would violate aliasing rules).
 unsafe fn p_give_ammo(player: &mut PlayerT, ammo: c_int, mut num: c_int) -> c_int {
+    num = crate::dmw::hooks::scale_ammo_pickup(ammo, num);
     if ammo == am_noammo {
         return 0;
     }
