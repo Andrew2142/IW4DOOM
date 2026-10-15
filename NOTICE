@@ -26,7 +26,11 @@ Apache-2.0 notice header and are listed below.
 
 | Ported file | Origin |
 |---|---|
-| (none yet; later sheets add rows here and in docs/provenance.md) | |
+| `crates/dmw_weapons/src/view_kick.rs` | iw4L crates/render_anim/src/anim/view_kick_state.rs (`ViewKickState`) at fc3d8ea |
+| `crates/dmw_weapons/src/view_sway.rs` | iw4L crates/render_anim/src/anim/view_sway.rs (`ViewSwayState`) at fc3d8ea |
+| `crates/dmw_weapons/src/breath.rs` | iw4L crates/movement_iw4/src/breath.rs (`update_hold_breath`) at fc3d8ea |
+| `crates/dmw_weapons/src/spread.rs` | iw4L crates/sim/src/combat.rs (`spread_direction_on_plane`, lines 1125-1150) at fc3d8ea |
+| `crates/dmw_weapons/src/sim.rs` | iw4L crates/sim/src/combat.rs (`advance_weapon_command` call sequence and `WeaponCmd` construction) and crates/sim/src/step.rs (`pmove_context` values) at fc3d8ea |
 
 --------------------------------------------------------------------------------
 Game assets

@@ -1,0 +1,16 @@
+{
+  "first_tic": 36,
+  "shot_tics": [
+    0,
+    4,
+    7,
+    11,
+    14,
+    18,
+    21,
+    25,
+    28,
+    32
+  ],
+  "weapon": "fixture_rifle"
+}

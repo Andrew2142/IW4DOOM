@@ -693,6 +693,7 @@ dependencies = [
  "movement_iw4",
  "playerstate_iw4",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
  "weapon_iw4",
  "xmodel_runtime",
