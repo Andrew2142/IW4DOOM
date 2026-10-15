@@ -742,3 +742,7 @@ pub fn quantize(image: &RgbaImage, pal: &PaletteTables, dither: Dither, alpha: A
 
 - §7.2: `ViewState` gains `pub gun_angle_offset: [f32; 2]` (pitch, yaw degrees; 07 step 13 value) so 08 (scope sway) and 12 (crosshair drift) do not recompute it.
 - 02 §5.7 `HudCfg.weapon_names` (default `true`); 04 §5.8 always exports `mp_hit_alert` when present. Applied in those sheets.
+
+### Revision 8 — 2026-10-16 (from sheet 11 §11 item 3)
+
+- §7.3: `Rasterizer::draw(&mut self, target: &mut DrawTarget<'_>, model: &PreparedViewmodel, params: &mut ViewmodelDrawParams<'_>) -> DrawStats` — `params` is `&mut` so `LightParams::Fuzz { fuzzpos }` can be written back. The interim `draw_mut` added by the crate half is folded into `draw`; `last_fuzzpos()` may stay as a convenience. The engine half (11 §6) implements against this signature.
