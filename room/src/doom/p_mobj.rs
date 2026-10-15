@@ -577,6 +577,7 @@ pub unsafe extern "C" fn P_SpawnMobj(x: c_int, y: c_int, z: c_int, type_: c_int)
 /// linked into the world.
 #[no_mangle]
 pub unsafe extern "C" fn P_RemoveMobj(mobj: *mut mobj_t) {
+    crate::dmw::hooks::on_remove_mobj(mobj);
     let mobj = &mut *mobj;
     if mobj.flags & MF_SPECIAL != 0
         && mobj.flags & MF_DROPPED == 0

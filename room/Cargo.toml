@@ -58,6 +58,7 @@ dmw_format = { path = "../crates/dmw_format" }
 dmw_weapons = { path = "../crates/dmw_weapons" }
 dmw_viewmodel = { path = "../crates/dmw_viewmodel" }
 glam.workspace = true
+weapon_iw4.workspace = true
 serde.workspace = true
 toml.workspace = true
 

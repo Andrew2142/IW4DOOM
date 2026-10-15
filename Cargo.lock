@@ -2240,6 +2240,7 @@ dependencies = [
  "rustysynth",
  "serde",
  "toml",
+ "weapon_iw4",
  "wgpu",
  "winit",
 ]

@@ -78,12 +78,16 @@ pub(crate) fn scale_ammo_pickup(_ammo: c_int, num: c_int) -> c_int {
 }
 
 /// `A_Explode`, first statement: `true` when an MW2 explosion handled the thing.
-pub(crate) unsafe fn on_explode(_thing: *mut mobj_t) -> bool {
-    false
+pub(crate) unsafe fn on_explode(thing: *mut mobj_t) -> bool {
+    // SAFETY: forwarded unchanged; the caller passes the thing `A_Explode` received.
+    unsafe { super::ballistics::on_explode(thing) }
 }
 
 /// `P_RemoveMobj`, first statement: forget MW2 missiles that vanish.
-pub(crate) unsafe fn on_remove_mobj(_mo: *mut mobj_t) {}
+pub(crate) unsafe fn on_remove_mobj(mo: *mut mobj_t) {
+    // SAFETY: forwarded unchanged; the address is only used as a registry key.
+    unsafe { super::ballistics::on_remove_mobj(mo) }
+}
 
 /// `R_SetupFrame`, end: shear, view kick, FOV zoom.
 pub(crate) unsafe fn on_setup_frame(player: *mut PlayerT) {
