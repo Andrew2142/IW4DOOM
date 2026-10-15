@@ -1,0 +1,207 @@
+{
+  "format_version": 1,
+  "generator": "dmw-fixture 0.1.0",
+  "iw4l_rev": "fixture",
+  "source": {
+    "game": "fixture",
+    "zone": "fixture",
+    "common_zone": null
+  },
+  "created_unix": 0,
+  "fixture": true,
+  "weapons": [
+    {
+      "name": "fixture_pistol",
+      "dir": "weapons/fixture_pistol",
+      "has_viewmodel": true,
+      "has_overlay": false,
+      "texture_count": 4
+    },
+    {
+      "name": "fixture_rifle",
+      "dir": "weapons/fixture_rifle",
+      "has_viewmodel": true,
+      "has_overlay": false,
+      "texture_count": 4
+    },
+    {
+      "name": "fixture_shotgun",
+      "dir": "weapons/fixture_shotgun",
+      "has_viewmodel": true,
+      "has_overlay": false,
+      "texture_count": 4
+    },
+    {
+      "name": "fixture_sniper",
+      "dir": "weapons/fixture_sniper",
+      "has_viewmodel": true,
+      "has_overlay": true,
+      "texture_count": 4
+    },
+    {
+      "name": "fixture_launcher",
+      "dir": "weapons/fixture_launcher",
+      "has_viewmodel": true,
+      "has_overlay": false,
+      "texture_count": 4
+    }
+  ],
+  "sounds": [
+    {
+      "alias": "fixture_fire_pistol",
+      "variants": [
+        {
+          "file": "sounds/fixture_fire_pistol/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 100.0,
+          "distance_max": 3000.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_fire_rifle",
+      "variants": [
+        {
+          "file": "sounds/fixture_fire_rifle/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 100.0,
+          "distance_max": 3000.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_fire_shotgun",
+      "variants": [
+        {
+          "file": "sounds/fixture_fire_shotgun/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 100.0,
+          "distance_max": 3000.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_fire_sniper",
+      "variants": [
+        {
+          "file": "sounds/fixture_fire_sniper/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 150.0,
+          "distance_max": 4000.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_fire_launcher",
+      "variants": [
+        {
+          "file": "sounds/fixture_fire_launcher/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 150.0,
+          "distance_max": 4000.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_empty",
+      "variants": [
+        {
+          "file": "sounds/fixture_empty/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 0.0,
+          "distance_max": 0.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_mag_out",
+      "variants": [
+        {
+          "file": "sounds/fixture_mag_out/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 0.0,
+          "distance_max": 0.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_mag_in",
+      "variants": [
+        {
+          "file": "sounds/fixture_mag_in/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 0.0,
+          "distance_max": 0.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_bolt_back",
+      "variants": [
+        {
+          "file": "sounds/fixture_bolt_back/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 0.0,
+          "distance_max": 0.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_bolt_forward",
+      "variants": [
+        {
+          "file": "sounds/fixture_bolt_forward/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 0.0,
+          "distance_max": 0.0
+        }
+      ]
+    },
+    {
+      "alias": "fixture_explode",
+      "variants": [
+        {
+          "file": "sounds/fixture_explode/0.wav",
+          "volume": 1.0,
+          "pitch": 1.0,
+          "looping": false,
+          "distance_min": 200.0,
+          "distance_max": 4000.0
+        }
+      ]
+    }
+  ],
+  "aliases": {
+    "aa12_mp": "fixture_shotgun",
+    "barrett_mp": "fixture_sniper",
+    "cheytac_mp": "fixture_sniper",
+    "deserteagle_mp": "fixture_pistol",
+    "kriss_mp": "fixture_rifle",
+    "m4_mp": "fixture_rifle",
+    "mg4_mp": "fixture_rifle",
+    "ranger_mp": "fixture_shotgun",
+    "rpg_mp": "fixture_launcher",
+    "spas12_mp": "fixture_shotgun",
+    "usp_mp": "fixture_pistol"
+  }
+}

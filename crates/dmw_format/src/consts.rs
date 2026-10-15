@@ -103,6 +103,15 @@ mod tests {
     }
 
     #[test]
+    fn unit_ratios_are_reciprocal() {
+        assert!((DOOM_PER_MW2 * MW2_PER_DOOM - 1.0).abs() < 1e-6);
+        assert_eq!(FRACUNIT, 65536);
+        assert_eq!(DmwWeaponId::default(), DmwWeaponId(0));
+        assert_eq!(std::mem::size_of::<DmwWeaponId>(), 2);
+        assert!((PIXEL_ASPECT - 5.0 / 6.0).abs() < 1e-6);
+    }
+
+    #[test]
     fn shadow_velocity_scale_matches_contract() {
         assert!((SHADOW_VELOCITY_SCALE - 0.2606).abs() < 1e-3);
     }

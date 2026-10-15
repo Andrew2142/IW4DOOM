@@ -12,6 +12,7 @@ postcard.workspace = true
 png.workspace = true
 hound.workspace = true
 thiserror.workspace = true
+log.workspace = true
 weapon_iw4.workspace = true
 glam.workspace = true
 

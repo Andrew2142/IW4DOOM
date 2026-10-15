@@ -13,3 +13,6 @@ session-*.md
 *.dsg
 /doommw2.toml
 /.default.cfg
+
+# Golden files for the pack format tests are JSON.
+!/crates/dmw_format/tests/golden/*.json
