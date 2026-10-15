@@ -1,0 +1,88 @@
+# https://github.com/go-task/task
+# DOOMMW2 task runner (docs/specs/02-workspace-scaffold.md section 5.6).
+version: "3"
+
+dotenv: [".env"]
+
+tasks:
+  check:
+    desc: Type-check the whole workspace (the exporter is separate, see export-check)
+    cmds:
+      - cmd: tools/check-iw4l-rev.sh || echo "WARNING iw4L is not at the pinned revision (task iw4l-rev); builds continue" >&2
+        ignore_error: true
+      - cargo check --workspace --all-targets
+
+  lint:
+    desc: Clippy (new crates with -D warnings, engine crate gated on room/src/dmw) then crate boundaries
+    cmds:
+      - cargo clippy -p dmw_format -p dmw_weapons -p dmw_viewmodel --all-targets -- -D warnings
+      - tools/check-room-lint.sh
+      - tools/check-deps.sh
+
+  fmt:
+    desc: Format the new crates (never the engine wholesale, see 01 section 5.2)
+    cmds:
+      - cargo fmt -p dmw_format -p dmw_weapons -p dmw_viewmodel
+
+  test:
+    desc: Run all tests; demo_playthrough only when doom1.wad is a real WAD
+    env:
+      RUST_BACKTRACE: "1"
+    cmds:
+      - cmd: |
+          if [ "$(head -c 4 doom1.wad 2>/dev/null)" = "IWAD" ]; then
+            cargo test --workspace
+          else
+            echo "task test: doom1.wad is missing or a Git LFS pointer, skipping demo_playthrough (see README, shareware doom1.wad)"
+            cargo test --workspace -- --skip demo_playthrough
+          fi
+
+  run:
+    desc: "Run the game: task run -- -warp 1 1"
+    cmds:
+      - cargo run --release --bin doommw2 -- -iwad ${DMW_IWAD:-wads/freedoom1.wad} {{.CLI_ARGS}}
+
+  run-fixture:
+    desc: Run with the in-memory synthetic fixture pack (needs sheets 03 and 08)
+    cmds:
+      - task: run
+        vars: { CLI_ARGS: "-fixturepack {{.CLI_ARGS}}" }
+
+  fetch-wads:
+    desc: Download the pinned Freedoom IWADs into wads/
+    cmds:
+      - tools/fetch-freedoom.sh
+
+  fixture-pack:
+    desc: Write the synthetic fixture pack to packs/fixture (needs sheet 03)
+    cmds:
+      - cargo run -p dmw_format --bin dmw-fixture -- packs/fixture
+
+  export:
+    desc: Export an MW2 install to packs/mw2 (needs DMW_MW2_GAMES and sheet 04)
+    cmds:
+      - tools/check-iw4l-rev.sh && cd tools/dmw_export && cargo run --release -- --out ../../packs/mw2 {{.CLI_ARGS}}
+
+  export-check:
+    desc: cargo check the exporter (slow Bevy build)
+    cmds:
+      - cd tools/dmw_export && cargo check
+
+  bench:
+    desc: Release-mode benchmarks (needs sheet 13)
+    cmds:
+      - cargo test --release -p room --test bench -- --nocapture
+
+  ci:
+    desc: check, lint, test in order (plus export-check when DMW_BUILD_EXPORTER=1)
+    cmds:
+      - task: check
+      - task: lint
+      - task: test
+      - cmd: |
+          if [ "${DMW_BUILD_EXPORTER:-0}" = "1" ]; then task export-check; fi
+
+  iw4l-rev:
+    desc: Verify ../iw4L is at the revision pinned in IW4L_REV
+    cmds:
+      - tools/check-iw4l-rev.sh
