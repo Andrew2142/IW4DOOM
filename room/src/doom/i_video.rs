@@ -482,6 +482,22 @@ pub unsafe extern "C" fn I_SetPalette(palette: *mut u8) {
     }
 }
 
+/// Copy of the active (gamma-corrected) palette as RGB triples.
+///
+/// Test-only read accessor (sheet 13 section 5.2, `test-hooks` feature): `COLORS` is private to
+/// this module, and the headless harness needs it to expand `I_VideoBuffer` indices into
+/// pixels. Not compiled into the shipped binary.
+#[cfg(feature = "test-hooks")]
+pub fn test_palette_rgb() -> [[u8; 3]; 256] {
+    let mut out = [[0u8; 3]; 256];
+    for (i, o) in out.iter_mut().enumerate() {
+        // SAFETY: single-threaded engine; `COLORS` is a plain-old-data static.
+        let c = unsafe { (*(&raw const COLORS))[i] };
+        *o = [c.r, c.g, c.b];
+    }
+    out
+}
+
 /// Return the palette index closest to the given RGB triple.
 ///
 /// Mirrors `I_GetPaletteIndex` in `i_video.c`: linear scan over the
