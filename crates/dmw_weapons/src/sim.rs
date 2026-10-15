@@ -111,6 +111,32 @@ fn mw2_fov_to_doom(f: f32) -> f32 {
     2.0 * (half_doom * ratio).atan().to_degrees()
 }
 
+/// Bridge rule (sheet 07 §11 item 16): carry the fire-cycle overshoot into the next cycle.
+///
+/// `weapon_iw4` clamps `weapon_time` at 0 when a cycle expires inside a tic (tick.rs:985-987)
+/// and sets `weapon_time = fire_time` when the next shot fires on that tic (tick.rs:1237), so at
+/// 28/29 ms tics the part of the tic past the expiry is lost and an 86 ms gun fires every 3 or 4
+/// tics (10 shots per 35 tics instead of 11.6). When a shot fires on the tic in which the
+/// previous cycle ran out (`Firing`, `0 < weapon_time <= msec` before the tic), the overrun
+/// `msec - weapon_time` is subtracted from the new cycle (never below 1 ms). Shots still land on
+/// tics, and the average rate equals `1000 / fire_time` shots per second.
+fn carry_fire_overshoot(
+    hand: &mut WeaponHandState,
+    fire_time_ms: i32,
+    pre_state: i32,
+    pre_weapon_time: i32,
+    msec: i32,
+) {
+    let fresh_cycle = fire_time_ms.max(1);
+    if pre_state == WeaponState::Firing as i32
+        && pre_weapon_time > 0
+        && pre_weapon_time <= msec
+        && hand.weapon_time == fresh_cycle
+    {
+        hand.weapon_time = (fresh_cycle - (msec - pre_weapon_time)).max(1);
+    }
+}
+
 impl WeaponSim {
     /// Creates the sim; copies the combat facts of every pack weapon. Never fails (the pack was
     /// validated when it was opened).
@@ -620,7 +646,22 @@ impl WeaponSim {
             };
 
             // ---- Step 9: run (combat.rs:519); facts are the held weapon's (combat.rs:215).
+            let pre_state = self.hands[0].weaponstate;
+            let pre_weapon_time = self.hands[0].weapon_time;
             let tick_events = weapon_hands(&mut self.hands, &combat, &mut wcmd, 0);
+            let shot = tick_events
+                .iter()
+                .flatten()
+                .any(|(h, e)| *h == 0 && matches!(e, WeaponTickEvent::ShotAccepted { .. }));
+            if shot {
+                carry_fire_overshoot(
+                    &mut self.hands[0],
+                    combat.fire_time_ms,
+                    pre_state,
+                    pre_weapon_time,
+                    msec,
+                );
+            }
             let hand0 = self.hands[0];
 
             // ---- Step 10: write back (combat.rs:562-597).
