@@ -54,3 +54,8 @@ Mirrors the table in `NOTICE`.
 | `crates/dmw_weapons/src/breath.rs` | iw4L crates/movement_iw4/src/breath.rs (`update_hold_breath`) at fc3d8ea |
 | `crates/dmw_weapons/src/spread.rs` | iw4L crates/sim/src/combat.rs (`spread_direction_on_plane`, lines 1125-1150) at fc3d8ea |
 | `crates/dmw_weapons/src/sim.rs` | iw4L crates/sim/src/combat.rs (`advance_weapon_command` call sequence and `WeaponCmd` construction) and crates/sim/src/step.rs (`pmove_context` values) at fc3d8ea |
+| `room/src/dmw/ballistics.rs` | iw4L crates/sim/src/bullet.rs (`bullet_damage_at_distance`) at fc3d8ea |
+
+## Adapted from room (GPL)
+
+- `room/src/dmw/ballistics.rs` `dmw_shoot_traverse` and `wall_hit` are adapted from room's `PTR_ShootTraverse` / `goto_hitline` (`room/src/doom/p_map.rs`, GPL-2.0-or-later): same line, opening and thing tests, recording the hit instead of damaging it. `dmw_radius_thing` adapts `PIT_RadiusAttack` with MW2 damage numbers.
