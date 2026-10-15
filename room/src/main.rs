@@ -85,6 +85,9 @@ struct App {
     /// has been executed, so that subsequent `about_to_wait` calls use
     /// `doomgeneric_Tick` instead.
     doom_initialized: bool,
+
+    /// `doommw2.toml` `[render] aspect_correct`: 4:3 letterboxed presentation.
+    aspect_correct: bool,
 }
 
 /// Manual [`Send`] impl: the raw pointers in `argv` reference `CString` data
@@ -106,7 +109,7 @@ impl App {
     ///
     /// Arguments are converted to null-terminated C strings, and a parallel
     /// `argv` array of raw pointers is built.
-    fn new() -> Self {
+    fn new(aspect_correct: bool) -> Self {
         let args: Vec<CString> = std::env::args()
             .map(|a| CString::new(a).expect("argument contained null byte"))
             .collect();
@@ -119,6 +122,7 @@ impl App {
             args,
             argv,
             doom_initialized: false,
+            aspect_correct,
         }
     }
 }
@@ -131,19 +135,25 @@ impl ApplicationHandler for App {
     /// Creates the OS window, initialises wgpu, and stores both in the
     /// thread-local platform state so the `DG_*` callbacks can reach them.
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        // Sheet 06 section 5.6: 960x720 (the 320x200 frame at 4:3) when aspect-correcting,
+        // otherwise the native 640x400; resizable either way, the frame is scaled to fit.
+        let (win_w, win_h) = if self.aspect_correct {
+            (960, 720)
+        } else {
+            (DOOMGENERIC_RESX as u32, DOOMGENERIC_RESY as u32)
+        };
         log::info!(
-            "Creating window ({}×{})",
+            "Creating window ({win_w}×{win_h}) for the {}×{} frame, aspect_correct = {}",
             DOOMGENERIC_RESX,
-            DOOMGENERIC_RESY
+            DOOMGENERIC_RESY,
+            self.aspect_correct
         );
 
         let window_attrs = Window::default_attributes()
             .with_title("DOOMMW2")
-            .with_inner_size(LogicalSize::new(
-                DOOMGENERIC_RESX as u32,
-                DOOMGENERIC_RESY as u32,
-            ))
-            .with_resizable(false);
+            .with_inner_size(LogicalSize::new(win_w, win_h))
+            .with_min_inner_size(LogicalSize::new(320u32, 240u32))
+            .with_resizable(true);
 
         let window = match event_loop.create_window(window_attrs) {
             Ok(w) => std::sync::Arc::new(w),
@@ -155,7 +165,7 @@ impl ApplicationHandler for App {
         };
 
         // Initialise the GPU renderer.
-        match GpuState::new(window.clone()) {
+        match GpuState::new(window.clone(), self.aspect_correct) {
             Ok(gpu) => {
                 GPU.with_borrow_mut(|g| *g = Some(gpu));
                 WINDOW.with_borrow_mut(|w| *w = Some(window));
@@ -300,7 +310,7 @@ fn main() {
     // Poll continuously so we can tick the game as fast as possible.
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-    let mut app = App::new();
+    let mut app = App::new(config.render.aspect_correct);
     if let Err(e) = event_loop.run_app(&mut app) {
         log::error!("Event loop error: {e}");
         std::process::exit(1);
