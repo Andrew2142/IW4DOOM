@@ -2233,6 +2233,7 @@ dependencies = [
  "log",
  "pollster",
  "rodio",
+ "room",
  "rustysynth",
  "serde",
  "toml",

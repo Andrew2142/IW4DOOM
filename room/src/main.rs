@@ -51,7 +51,7 @@ use std::ffi::{c_char, c_int, CString};
 
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::PhysicalKey;
 use winit::window::{Window, WindowId};
@@ -189,6 +189,14 @@ impl ApplicationHandler for App {
                     }
                 });
             }
+            WindowEvent::MouseInput { state, button, .. } => {
+                platform::on_mouse_button(button, state == ElementState::Pressed);
+            }
+            WindowEvent::MouseWheel { delta, .. } => platform::on_mouse_wheel(delta),
+            WindowEvent::CursorMoved { position, .. } => {
+                platform::on_cursor_moved(position.x, position.y);
+            }
+            WindowEvent::Focused(focused) => platform::on_focus(focused),
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(code) = event.physical_key {
                     // Ignore auto-repeat key presses (key held down).
@@ -207,6 +215,18 @@ impl ApplicationHandler for App {
         }
     }
 
+    /// Raw device events: unaccelerated mouse motion while the cursor is captured.
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            platform::on_raw_motion(delta.0, delta.1);
+        }
+    }
+
     /// Called when all pending events have been processed.
     ///
     /// This is the main "game loop" hook: on the first call, the Doom engine
@@ -222,6 +242,9 @@ impl ApplicationHandler for App {
             event_loop.exit();
             return;
         }
+
+        // Grab or release the cursor before the tick consumes mouse input.
+        platform::update_grab();
 
         if !self.doom_initialized {
             // First tick: initialise the engine.
@@ -266,6 +289,11 @@ fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     log::info!("DOOMMW2 – room-based Doom with MW2 gunplay");
+
+    // Mouse capture settings live in doommw2.toml `[input]`.
+    let explicit_config = platform::mw2config_arg();
+    let (config, _) = room::dmw::config::DmwConfig::load(explicit_config.as_deref());
+    platform::configure_input(&config.input);
 
     let event_loop = EventLoop::new().expect("failed to create event loop");
 

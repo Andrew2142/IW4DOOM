@@ -123,10 +123,10 @@ pub static mut mouse_threshold: c_int = 10;
 #[no_mangle]
 pub static mut fb_scaling: c_int = 1;
 
-/// Non-zero to enable mouse input. Always 0 in this port unless set
-/// by config. Mirrors `usemouse`.
+/// Non-zero to enable mouse input. DOOMMW2 (sheet 05) defaults it to 1; `-nomouse` clears it
+/// in `I_InitInput`. Mirrors `usemouse`.
 #[no_mangle]
-pub static mut usemouse: c_int = 0;
+pub static mut usemouse: c_int = 1;
 
 /// Active 256-entry gamma-corrected palette. Filled from the WAD
 /// PLAYPAL by `I_SetPalette` and consumed by `cmap_to_fb` /

@@ -19,6 +19,8 @@ path = "src/main.rs"
 [features]
 dhat-heap = ["dep:dhat"]
 rangecheck = []
+# Test-only hooks (sheet 05 mode override; sheet 13 adds more). Off in the shipped binary.
+test-hooks = []
 
 [dependencies]
 # Cross-platform window creation and event handling.
@@ -63,3 +65,6 @@ toml.workspace = true
 # C layout-guard tests: compiles test_helpers.c to verify C struct offsets
 # match the ported Rust equivalents. Only linked into the test binary.
 doomgeneric-sys = { path = "../doomgeneric-sys" }
+# Enables the `test-hooks` feature for the integration tests only (they are compiled with
+# dev-dependencies; the shipped `doommw2` binary is not).
+room = { path = ".", features = ["test-hooks"] }

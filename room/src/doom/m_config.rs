@@ -223,7 +223,7 @@ static mut doom_defaults: DefaultCollection = DefaultCollection {
 ///
 /// Holds the extended (non-vanilla) settings - video, joystick, mouse and
 /// extra key bindings. Order matches the C source.
-static mut EXTRA_DEFAULTS_LIST: [Default; 119] = [
+static mut EXTRA_DEFAULTS_LIST: [Default; 129] = [
     cfg(b"graphical_startup\0", DefaultType::Int),
     cfg(b"autoadjust_video_settings\0", DefaultType::Int),
     cfg(b"fullscreen\0", DefaultType::Int),
@@ -343,6 +343,16 @@ static mut EXTRA_DEFAULTS_LIST: [Default; 119] = [
     cfg(b"key_multi_msgplayer6\0", DefaultType::Key),
     cfg(b"key_multi_msgplayer7\0", DefaultType::Key),
     cfg(b"key_multi_msgplayer8\0", DefaultType::Key),
+    cfg(b"key_dmw_reload\0", DefaultType::Key),
+    cfg(b"key_dmw_ads\0", DefaultType::Key),
+    cfg(b"key_dmw_sprint\0", DefaultType::Key),
+    cfg(b"key_dmw_melee\0", DefaultType::Key),
+    cfg(b"key_dmw_swap\0", DefaultType::Key),
+    cfg(b"mouseb_dmw_ads\0", DefaultType::Int),
+    cfg(b"mouseb_dmw_melee\0", DefaultType::Int),
+    cfg(b"mouse_dmw_look\0", DefaultType::Int),
+    cfg(b"mouse_dmw_invert\0", DefaultType::Int),
+    cfg(b"mouse_dmw_pitch_sens\0", DefaultType::Int),
 ];
 
 /// Collection wrapper around [`EXTRA_DEFAULTS_LIST`] for the extended
@@ -350,7 +360,7 @@ static mut EXTRA_DEFAULTS_LIST: [Default; 119] = [
 /// extra_defaults`.
 static mut extra_defaults: DefaultCollection = DefaultCollection {
     defaults: unsafe { &mut EXTRA_DEFAULTS_LIST as *mut _ },
-    numdefaults: 119,
+    numdefaults: 129,
     filename: ptr::null_mut(),
 };
 

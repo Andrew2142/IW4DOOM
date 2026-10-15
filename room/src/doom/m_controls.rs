@@ -410,6 +410,41 @@ pub static mut joybmenu: c_int = -1;
 #[no_mangle]
 pub static mut dclick_use: c_int = 1;
 
+//
+// DOOMMW2 controls (sheet 05, docs/specs/00-overview-and-contracts.md section 8.3)
+//
+
+/// DOOMMW2: reload key (default: `r`).
+#[no_mangle]
+pub static mut key_dmw_reload: c_int = b'r' as c_int;
+/// DOOMMW2: aim-down-sights key (default: -1 = unbound, ADS is on the mouse).
+#[no_mangle]
+pub static mut key_dmw_ads: c_int = -1;
+/// DOOMMW2: aim-down-sights mouse button (default: 1 = right button).
+#[no_mangle]
+pub static mut mouseb_dmw_ads: c_int = 1;
+/// DOOMMW2: sprint key, hold breath while aiming (default: right Shift).
+#[no_mangle]
+pub static mut key_dmw_sprint: c_int = KEY_RSHIFT as c_int;
+/// DOOMMW2: melee key (default: `v`).
+#[no_mangle]
+pub static mut key_dmw_melee: c_int = b'v' as c_int;
+/// DOOMMW2: melee mouse button (default: 3 = mouse4).
+#[no_mangle]
+pub static mut mouseb_dmw_melee: c_int = 3;
+/// DOOMMW2: switch to the last held weapon (default: `q`).
+#[no_mangle]
+pub static mut key_dmw_swap: c_int = b'q' as c_int;
+/// DOOMMW2: non-zero = mouse Y controls pitch in MW2 mode, 0 = vanilla forward/back.
+#[no_mangle]
+pub static mut mouse_dmw_look: c_int = 1;
+/// DOOMMW2: non-zero inverts the pitch axis.
+#[no_mangle]
+pub static mut mouse_dmw_invert: c_int = 0;
+/// DOOMMW2: pitch sensitivity, same scale as `mouse_sensitivity`.
+#[no_mangle]
+pub static mut mouse_dmw_pitch_sens: c_int = 5;
+
 extern "C" {
     /// `m_config` callback that registers a named variable against a
     /// memory location. Wired through the `M_Bind*` functions below.
@@ -537,6 +572,46 @@ pub extern "C" fn M_BindBaseControls() {
         M_BindVariable(
             cstr(b"dclick_use\0"),
             &raw mut dclick_use as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"key_dmw_reload\0"),
+            &raw mut key_dmw_reload as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"key_dmw_ads\0"),
+            &raw mut key_dmw_ads as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"mouseb_dmw_ads\0"),
+            &raw mut mouseb_dmw_ads as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"key_dmw_sprint\0"),
+            &raw mut key_dmw_sprint as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"key_dmw_melee\0"),
+            &raw mut key_dmw_melee as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"mouseb_dmw_melee\0"),
+            &raw mut mouseb_dmw_melee as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"key_dmw_swap\0"),
+            &raw mut key_dmw_swap as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"mouse_dmw_look\0"),
+            &raw mut mouse_dmw_look as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"mouse_dmw_invert\0"),
+            &raw mut mouse_dmw_invert as *mut c_int as *mut c_void,
+        );
+        M_BindVariable(
+            cstr(b"mouse_dmw_pitch_sens\0"),
+            &raw mut mouse_dmw_pitch_sens as *mut c_int as *mut c_void,
         );
         M_BindVariable(
             cstr(b"key_pause\0"),

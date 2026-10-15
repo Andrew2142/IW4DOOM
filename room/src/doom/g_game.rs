@@ -849,6 +849,28 @@ unsafe fn joybutton(n: c_int) -> boolean {
     JOYARRAY[(n + 1) as usize]
 }
 
+/// DOOMMW2 (sheet 05): whether the key with Doom key code `key` is currently held.
+///
+/// `-1` (unbound) and out-of-range codes read as not held.
+///
+/// # Safety
+/// Reads the `GAMEKEYDOWN` global; safe under the single-threaded contract.
+#[inline]
+pub(crate) fn game_key_down(key: c_int) -> bool {
+    if key < 0 || key >= NUMKEYS as c_int {
+        return false;
+    }
+    // SAFETY: single-threaded engine; the index was range-checked above.
+    unsafe { GAMEKEYDOWN[key as usize] != 0 }
+}
+
+/// DOOMMW2 (sheet 05): whether mouse button `n` is currently held (`-1` = unbound).
+#[inline]
+pub(crate) fn mouse_button_down(n: c_int) -> bool {
+    // SAFETY: single-threaded engine; `mousebutton` range-checks `n`.
+    unsafe { mousebutton(n) != 0 }
+}
+
 // ---------------------------------------------------------------------------
 // G_CmdChecksum
 // ---------------------------------------------------------------------------
@@ -991,20 +1013,27 @@ unsafe fn g_next_weapon(direction: c_int) -> c_int {
 pub unsafe extern "C" fn G_BuildTiccmd(cmd: *mut TiccmdT, maketic: c_int) {
     use crate::doom::c_ffi::BACKUPTICS;
 
+    let cmd_ptr = cmd;
     let cmd = &mut *cmd;
     *cmd = std::mem::zeroed();
 
     cmd.consistancy = consistancy[consoleplayer as usize][(maketic as usize) % BACKUPTICS];
 
+    // DOOMMW2 (sheet 05): in MW2 mode the player always runs and the strafe/forward mouse
+    // buttons are ignored (right button = ADS, middle = unbound).
+    let mw2 = crate::dmw::hooks::force_run();
+    let mb = |n: c_int| if mw2 { -1 } else { n };
+
     let strafe = (GAMEKEYDOWN[key_strafe as usize] != 0)
-        || (mousebutton(mousebstrafe) != 0)
+        || (mousebutton(mb(mousebstrafe)) != 0)
         || (joybutton(joybstrafe) != 0);
 
     // "joyb_speed = 31" autorun hack: key_speed >= NUMKEYS means always running
     let speed = (key_speed >= NUMKEYS as c_int)
         || (joybspeed >= MAX_JOY_BUTTONS as c_int)
         || (GAMEKEYDOWN[key_speed as usize] != 0)
-        || (joybutton(joybspeed) != 0);
+        || (joybutton(joybspeed) != 0)
+        || mw2;
     let speed = speed as usize;
 
     let mut forward: c_int = 0;
@@ -1119,7 +1148,7 @@ pub unsafe extern "C" fn G_BuildTiccmd(cmd: *mut TiccmdT, maketic: c_int) {
     NEXT_WEAPON = 0;
 
     // Mouse forward/backward
-    if mousebutton(mousebforward) != 0 {
+    if mousebutton(mb(mousebforward)) != 0 {
         forward += forwardmove[speed];
     }
     if mousebutton(mousebbackward) != 0 {
@@ -1128,8 +1157,8 @@ pub unsafe extern "C" fn G_BuildTiccmd(cmd: *mut TiccmdT, maketic: c_int) {
 
     // Double-click use
     if dclick_use != 0 {
-        if mousebutton(mousebforward) != DCLICKSTATE && DCLICKTIME > 1 {
-            DCLICKSTATE = mousebutton(mousebforward);
+        if mousebutton(mb(mousebforward)) != DCLICKSTATE && DCLICKTIME > 1 {
+            DCLICKSTATE = mousebutton(mb(mousebforward));
             if DCLICKSTATE != 0 {
                 DCLICKS += 1;
             }
@@ -1147,7 +1176,7 @@ pub unsafe extern "C" fn G_BuildTiccmd(cmd: *mut TiccmdT, maketic: c_int) {
             }
         }
 
-        let bstrafe = (mousebutton(mousebstrafe) != 0 || joybutton(joybstrafe) != 0) as boolean;
+        let bstrafe = (mousebutton(mb(mousebstrafe)) != 0 || joybutton(joybstrafe) != 0) as boolean;
         if bstrafe != DCLICKSTATE2 && DCLICKTIME2 > 1 {
             DCLICKSTATE2 = bstrafe;
             if DCLICKSTATE2 != 0 {
@@ -1213,6 +1242,9 @@ pub unsafe extern "C" fn G_BuildTiccmd(cmd: *mut TiccmdT, maketic: c_int) {
         cmd.angleturn = ((desired as i32 + 128) & 0xff00) as i16;
         LOWRES_TURN_CARRY = desired.wrapping_sub(cmd.angleturn);
     }
+
+    // DOOMMW2 (sheet 05): build the extended command (pitch delta, MW2 buttons).
+    crate::dmw::hooks::on_build_ticcmd(cmd_ptr, maketic);
 }
 
 // ---------------------------------------------------------------------------
@@ -1441,8 +1473,15 @@ pub unsafe extern "C" fn G_Responder(ev: *mut event_t) -> boolean {
         2 => {
             // ev_mouse
             set_mouse_buttons(ev.data1 as c_uint);
-            MOUSEX = ev.data2 * (mouseSensitivity + 5) / 10;
-            MOUSEY = ev.data3 * (mouseSensitivity + 5) / 10;
+            // Samples are accumulated (not overwritten) so motion is not lost when more than
+            // one ev_mouse arrives between two G_BuildTiccmd calls; G_BuildTiccmd clears both.
+            MOUSEX += crate::dmw::input::scale_yaw(ev.data2 * (mouseSensitivity + 5) / 10);
+            if crate::dmw::hooks::mouse_look_active() {
+                // DOOMMW2 (sheet 05): mouse Y drives pitch, not forward/back movement.
+                crate::dmw::input::on_mouse_event(ev);
+            } else {
+                MOUSEY += ev.data3 * (mouseSensitivity + 5) / 10;
+            }
             return 1;
         }
         3 => {
@@ -1526,6 +1565,9 @@ pub unsafe extern "C" fn G_Ticker() {
 
             // Copy net command into player command
             std::ptr::copy_nonoverlapping(netcmds.add(i), cmd, 1);
+
+            // DOOMMW2 (sheet 05): copy the extended command into PLAYER_EXT.
+            crate::dmw::hooks::on_ticcmd_copied(i as c_int);
 
             if demoplayback != 0 {
                 G_ReadDemoTiccmd(cmd);

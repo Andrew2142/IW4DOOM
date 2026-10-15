@@ -13,6 +13,8 @@ use std::os::raw::c_int;
 
 use crate::doom::d_event::event_t;
 use crate::doom::doomkeys::KEY_RSHIFT;
+use crate::doom::i_video::usemouse;
+use crate::doom::m_argv::M_CheckParm;
 
 /// Configuration flag mirroring the C global `vanilla_keyboard_mapping`.
 ///
@@ -34,6 +36,13 @@ extern "C" {
     /// Fills `*pressed` with 1 for keydown / 0 for keyup and `*key` with the
     /// Doom key code. Returns non-zero while events are available.
     fn DG_GetKey(pressed: *mut c_int, key: *mut u8) -> c_int;
+    /// Platform-layer mouse poll (DOOMMW2, sheet 05).
+    ///
+    /// Writes the integer mouse counts accumulated since the last call to `*dx` / `*dy`
+    /// (screen convention: positive `dy` = down) and the held-button bits to `*buttons`
+    /// (left 0, right 1, middle 2, back 3, forward 4, wheel up 5, wheel down 6). Returns
+    /// non-zero when a sample is available, 0 when nothing changed.
+    fn DG_GetMouse(dx: *mut c_int, dy: *mut c_int, buttons: *mut u8) -> c_int;
     /// Doom event sink, defined in `d_main.c`.
     fn D_PostEvent(ev: *const event_t);
 }
@@ -124,7 +133,14 @@ fn UpdateShiftStatus(pressed: c_int, key: u8) {
 /// `DG_Init` / `DG_GetKey`). Exported with C linkage because `i_video.c`
 /// still calls it.
 #[no_mangle]
-pub extern "C" fn I_InitInput() {}
+pub extern "C" fn I_InitInput() {
+    // DOOMMW2 (sheet 05): `-nomouse` disables mouse events, as in Chocolate Doom.
+    unsafe {
+        if M_CheckParm(c"-nomouse".as_ptr()) != 0 {
+            usemouse = 0;
+        }
+    }
+}
 
 /// Pumps the platform key queue, posting one `ev_keydown` event per pressed
 /// key and a single `ev_keyup` event before returning.
@@ -136,6 +152,21 @@ pub extern "C" fn I_InitInput() {}
 #[no_mangle]
 pub extern "C" fn I_GetEvent() {
     unsafe {
+        // DOOMMW2 (sheet 05): at most one ev_mouse per call, posted before the key loop
+        // (which breaks on the first key-up). The platform only reports a sample when the
+        // motion or the button state changed.
+        let (mut dx, mut dy, mut buttons) = (0 as c_int, 0 as c_int, 0u8);
+        if DG_GetMouse(&mut dx, &mut dy, &mut buttons) != 0 && usemouse != 0 {
+            let event = event_t {
+                type_: 2, // ev_mouse
+                data1: c_int::from(buttons),
+                data2: dx,
+                data3: -dy, // Doom: mouse moved forward/up is positive
+                data4: 0,
+            };
+            D_PostEvent(&event);
+        }
+
         let mut pressed: c_int = 0;
         let mut key: u8 = 0;
 

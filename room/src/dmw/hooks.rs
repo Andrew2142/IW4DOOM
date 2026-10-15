@@ -4,8 +4,9 @@
 //!
 //! Each function has its final signature and a scaffold body that returns the "not handled"
 //! value, so a call site in `room/src/doom/*` leaves vanilla behaviour untouched. Sheet 08
-//! owns this file and the one-line delegations into the other `dmw` modules. No Doom file
-//! calls these yet: sheet 08 adds the call sites.
+//! owns this file and the one-line delegations into the other `dmw` modules. Sheet 05 added
+//! the call sites and delegations for its own rows (`on_build_ticcmd`, `mouse_look_active`,
+//! `force_run`, `on_ticcmd_copied`, `release_mouse`); sheet 08 adds the rest.
 //!
 //! Hooks listed in the table but defined elsewhere:
 //! - `input::on_mouse_event` and `input::scale_yaw` live in [`super::input`].
@@ -25,20 +26,25 @@ pub(crate) fn on_engine_init() {}
 pub(crate) fn on_level_start() {}
 
 /// `G_BuildTiccmd`, end: mouse pitch, extended buttons, MW2 bindings.
-pub(crate) unsafe fn on_build_ticcmd(_cmd: *mut TiccmdT, _maketic: c_int) {}
+pub(crate) unsafe fn on_build_ticcmd(cmd: *mut TiccmdT, maketic: c_int) {
+    // SAFETY: forwarded unchanged; the caller passes the ticcmd it just built.
+    unsafe { super::input::on_build_ticcmd(cmd, maketic) }
+}
 
 /// `G_Responder`, `ev_mouse` arm: `true` when mouse Y should drive pitch instead of movement.
 pub(crate) fn mouse_look_active() -> bool {
-    false
+    super::input::mouse_look_active()
 }
 
 /// `G_BuildTiccmd`, after `speed` is computed: `true` forces always-run in MW2 mode.
 pub(crate) fn force_run() -> bool {
-    false
+    super::input::force_run()
 }
 
 /// `G_Ticker`, after the net command copy: copy the extended command into `PLAYER_EXT`.
-pub(crate) fn on_ticcmd_copied(_player_index: c_int) {}
+pub(crate) fn on_ticcmd_copied(player_index: c_int) {
+    super::input::on_ticcmd_copied(player_index);
+}
 
 /// `P_PlayerThink`, before `P_MovePsprites`: run `WeaponSim::tic`. Returns `true` when MW2
 /// owns the weapon this tic (skip `P_MovePsprites` and the `BT_CHANGE` block).
@@ -102,7 +108,9 @@ pub(crate) fn save_extension() {}
 pub(crate) fn load_extension() {}
 
 /// `M_Responder` menu open and window focus loss: release mouse capture.
-pub(crate) fn release_mouse() {}
+pub(crate) fn release_mouse() {
+    super::input::release_mouse();
+}
 
 #[cfg(test)]
 mod tests {
