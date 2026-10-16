@@ -766,9 +766,3 @@ Sections above that say otherwise are superseded by this revision (they are not 
 - Public name **IW4DOOM** (repository `IW4DOOM`). The binary is `iw4doom` (was `doommw2`); the window title is `IW4DOOM` (`IW4DOOM - <game description>` once the IWAD is known). Internal names (crates `room`, `dmw_*`, module `dmw`, log targets `dmw::*`, the `DOOMMW2` name in specs and code comments) are unchanged.
 - §4.3/§4.4: the config file is `iw4doom.toml` (`./iw4doom.toml`, then `$XDG_CONFIG_HOME/iw4doom/iw4doom.toml`); `doommw2.toml` in the old places is still read after the new name. The template is `iw4doom.example.toml`. `-mw2config` is unchanged.
 - Music: `-sf2 <path>`, else `games/soundfont.sf2`, else no music (one `info` line).
-
-### Revision 12 — 2026-10-16 (showcase keys; sheet 05 §11 item 13, sheet 08 §11 note 18)
-
-- §7.2 (additive): `WeaponSim::set_ammo_pool(DmwWeaponId, DoomAmmo)` and `WeaponSim::set_infinite_ammo(bool)`.
-- §8.3 / `iw4doom.toml [input]`: `key_dmw_next_weapon` (`]`), `key_dmw_prev_weapon` (`[`), `key_dmw_showcase` (`;`): cycle through every weapon in the pack, and toggle showcase mode (invulnerable, infinite ammo; off at each level start).
-- §7.4 / §8.1: ext button bits `EXT_BT_SHOW_NEXT` (bit 7), `EXT_BT_SHOW_PREV` (bit 8), `EXT_BT_SHOW_TOGGLE` (bit 9).
