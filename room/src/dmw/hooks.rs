@@ -124,7 +124,9 @@ fn open_pack(cfg: &DmwConfig) -> Option<Pack> {
         let fixture = Path::new("packs/fixture");
         match Pack::open(fixture) {
             Ok(p) => return Some(p),
-            Err(e) => warn!(target: PACK_TARGET, "fixture pack {} not loaded: {e}", fixture.display()),
+            Err(e) => {
+                warn!(target: PACK_TARGET, "fixture pack {} not loaded: {e}", fixture.display())
+            }
         }
     }
     info!(target: PACK_TARGET, "no pack loaded; MW2 mode stays off");
@@ -335,7 +337,9 @@ pub(crate) unsafe fn on_player_think(player: *mut PlayerT) -> bool {
         // outlives this call and no Doom function runs while they are live.
         let plan = with_state(|s| unsafe {
             let p = &mut *player;
-            let pe = &mut *(&raw mut PLAYER_EXT).cast::<super::ext::PlayerExt>().add(cp);
+            let pe = &mut *(&raw mut PLAYER_EXT)
+                .cast::<super::ext::PlayerExt>()
+                .add(cp);
             weapons::think(s, p, pe, leveltime, gamemode)
         });
         let Some(plan) = plan else {
@@ -517,7 +521,12 @@ pub(crate) fn save_extension() {
             return;
         };
         // SAFETY: plain read of the console player's extension slot.
-        let pitch_q = unsafe { (*(&raw const PLAYER_EXT).cast::<super::ext::PlayerExt>().add(cp)).pitch_q };
+        let pitch_q = unsafe {
+            (*(&raw const PLAYER_EXT)
+                .cast::<super::ext::PlayerExt>()
+                .add(cp))
+            .pitch_q
+        };
         let block = with_state(|s| {
             s.sim.as_ref().map(|sim| super::save::SaveBlock {
                 version: super::save::VERSION,
@@ -569,7 +578,9 @@ pub(crate) fn load_extension() {
         // SAFETY: `player` is the live console player; `PLAYER_EXT[cp]` its slot; plain field
         // writes only, no Doom function runs while the references are live.
         with_state(|s| unsafe {
-            let pe = &mut *(&raw mut PLAYER_EXT).cast::<super::ext::PlayerExt>().add(cpu);
+            let pe = &mut *(&raw mut PLAYER_EXT)
+                .cast::<super::ext::PlayerExt>()
+                .add(cpu);
             weapons::after_load(s, &mut *player, pe, block, pitch_q);
         });
     });

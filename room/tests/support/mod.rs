@@ -188,10 +188,10 @@ pub fn captured_log() -> Vec<String> {
 // Simulation state (sheet 07 types, sheet 08 `test-hooks` accessors)
 // ---------------------------------------------------------------------------
 
-/// The simulation's presentation snapshot (00 section 7.2).
-pub use dmw_weapons::ViewState;
 /// The events the simulation reports (00 section 7.2).
 pub use dmw_weapons::SimEvent;
+/// The simulation's presentation snapshot (00 section 7.2).
+pub use dmw_weapons::ViewState;
 
 /// One `SimEvent` recorded by the engine's `test-hooks` ring buffer (sheet 08 section 5.13).
 #[derive(Debug, Clone, PartialEq)]

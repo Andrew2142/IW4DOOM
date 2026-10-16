@@ -83,11 +83,15 @@ fn level_token() -> i32 {
 /// Stores the decision for the level that is starting (called by `on_level_start`). Logs the
 /// result at `info` when it changes or the reason changes.
 pub(crate) fn set_level(result: Result<(), &str>) {
+    set_level_at(result, level_token());
+}
+
+fn set_level_at(result: Result<(), &str>, token: i32) {
     let active = result.is_ok();
     let reason = result.err().map(str::to_owned);
     let changed = ACTIVE.get() != active || REASON.with_borrow(|r| *r != reason);
     ACTIVE.set(active);
-    TOKEN.set(Some(level_token()));
+    TOKEN.set(Some(token));
     if changed {
         match &reason {
             None => info!(target: TARGET, "MW2 mode on"),
@@ -99,7 +103,11 @@ pub(crate) fn set_level(result: Result<(), &str>) {
 
 /// `true` when the last evaluation said "on" and it belongs to the running level.
 fn evaluated_active() -> bool {
-    ACTIVE.get() && TOKEN.get() == Some(level_token())
+    evaluated_active_at(level_token())
+}
+
+fn evaluated_active_at(token: i32) -> bool {
+    ACTIVE.get() && TOKEN.get() == Some(token)
 }
 
 /// `true` while MW2 mode is active for the current level (input, freelook, weapons).
@@ -148,7 +156,9 @@ pub fn fail(reason: &str) {
         if gamestate != 0 || cp < 0 || cp as usize >= crate::doom::d_player::MAXPLAYERS {
             return;
         }
-        let player = (&raw mut players).cast::<crate::doom::d_player::PlayerT>().add(cp as usize);
+        let player = (&raw mut players)
+            .cast::<crate::doom::d_player::PlayerT>()
+            .add(cp as usize);
         (*player).extralight = 0;
         if !(*player).mo.is_null() && (*player).playerstate == 0 {
             crate::doom::p_pspr::P_SetupPsprites(player);
@@ -213,12 +223,48 @@ mod tests {
     fn gate_follows_d15() {
         assert_eq!(evaluate(&on()), Ok(()));
         let cases = [
-            (GateInputs { pack_loaded: false, ..on() }, "no pack loaded"),
-            (GateInputs { enabled: false, ..on() }, "[general] enabled = false"),
-            (GateInputs { netgame: true, ..on() }, "netgame"),
-            (GateInputs { demorecording: true, ..on() }, "demo recording"),
-            (GateInputs { demoplayback: true, ..on() }, "demo playback"),
-            (GateInputs { failed: true, ..on() }, "disabled after an error"),
+            (
+                GateInputs {
+                    pack_loaded: false,
+                    ..on()
+                },
+                "no pack loaded",
+            ),
+            (
+                GateInputs {
+                    enabled: false,
+                    ..on()
+                },
+                "[general] enabled = false",
+            ),
+            (
+                GateInputs {
+                    netgame: true,
+                    ..on()
+                },
+                "netgame",
+            ),
+            (
+                GateInputs {
+                    demorecording: true,
+                    ..on()
+                },
+                "demo recording",
+            ),
+            (
+                GateInputs {
+                    demoplayback: true,
+                    ..on()
+                },
+                "demo playback",
+            ),
+            (
+                GateInputs {
+                    failed: true,
+                    ..on()
+                },
+                "disabled after an error",
+            ),
         ];
         for (g, want) in cases {
             assert_eq!(evaluate(&g), Err(want));
@@ -227,13 +273,14 @@ mod tests {
 
     #[test]
     fn decision_belongs_to_the_level_it_was_made_for() {
-        set_level(Ok(()));
-        assert!(evaluated_active());
-        // SAFETY: unit test thread; the engine is not running.
-        unsafe { crate::doom::g_game::levelstarttic += 1 };
-        assert!(!evaluated_active(), "a new level load invalidates the decision");
-        set_level(Err("no pack loaded"));
-        assert!(!evaluated_active());
+        set_level_at(Ok(()), 100);
+        assert!(evaluated_active_at(100));
+        assert!(
+            !evaluated_active_at(101),
+            "a new level load invalidates the decision"
+        );
+        set_level_at(Err("no pack loaded"), 101);
+        assert!(!evaluated_active_at(101));
         assert_eq!(reason().as_deref(), Some("no pack loaded"));
     }
 }

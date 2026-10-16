@@ -131,9 +131,12 @@ mod tests {
             level_active: true,
             sim: SimSave {
                 owned: vec!["fixture_pistol".into(), "fixture_shotgun".into()],
-                magazines: [("fixture_pistol".to_owned(), 7), ("fixture_shotgun".to_owned(), 3)]
-                    .into_iter()
-                    .collect(),
+                magazines: [
+                    ("fixture_pistol".to_owned(), 7),
+                    ("fixture_shotgun".to_owned(), 3),
+                ]
+                .into_iter()
+                .collect(),
                 last_held: Some("fixture_pistol".into()),
                 held: Some("fixture_shotgun".into()),
             },

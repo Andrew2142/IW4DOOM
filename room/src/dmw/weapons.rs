@@ -24,7 +24,7 @@ use dmw_weapons::{
     TicOutput, WeaponSim,
 };
 use log::{debug, error, warn};
-use weapon_iw4::{FireWeaponKind, fire_weapon_kind};
+use weapon_iw4::{fire_weapon_kind, FireWeaponKind};
 
 use super::config::{AmmoCfg, DmwConfig, WeaponsCfg};
 use super::consts::{tic_msec, PITCH_UNITS_PER_DEGREE, SHADOW_VELOCITY_SCALE};
@@ -122,7 +122,12 @@ pub fn config_names(cfg: &WeaponsCfg) -> [&str; NUMWEAPONS] {
 
 /// Up to three pack weapon names (or aliases) that look like `name`.
 pub fn suggestions(name: &str, pack: &Pack) -> Vec<String> {
-    let mut known: Vec<&str> = pack.manifest.weapons.iter().map(|w| w.name.as_str()).collect();
+    let mut known: Vec<&str> = pack
+        .manifest
+        .weapons
+        .iter()
+        .map(|w| w.name.as_str())
+        .collect();
     known.extend(pack.manifest.aliases.keys().map(String::as_str));
     let lower = name.to_ascii_lowercase();
     let stem = lower.split('_').next().unwrap_or("");
@@ -137,7 +142,11 @@ pub fn suggestions(name: &str, pack: &Pack) -> Vec<String> {
         .collect();
     scored.sort();
     scored.dedup_by(|a, b| a.1 == b.1);
-    scored.into_iter().take(3).map(|(_, k)| k.to_owned()).collect()
+    scored
+        .into_iter()
+        .take(3)
+        .map(|(_, k)| k.to_owned())
+        .collect()
 }
 
 fn levenshtein(a: &str, b: &str) -> usize {
@@ -540,7 +549,8 @@ pub fn sync_ownership(
         }
     }
     inv.owned.retain(|id| wanted.contains(id));
-    inv.magazines.retain(|&k, _| wanted.contains(&DmwWeaponId(k)));
+    inv.magazines
+        .retain(|&k, _| wanted.contains(&DmwWeaponId(k)));
     if inv.last_held.is_some_and(|id| !wanted.contains(&id)) {
         inv.last_held = None;
     }
@@ -624,7 +634,12 @@ pub unsafe fn think(
         d.respawns += 1;
         debug!(target: TARGET, "respawn: first-raise memory cleared");
     }
-    let added = sync_ownership(sim.inventory_mut(), &s.mapping, pack.as_deref(), &p.weaponowned);
+    let added = sync_ownership(
+        sim.inventory_mut(),
+        &s.mapping,
+        pack.as_deref(),
+        &p.weaponowned,
+    );
     for id in added {
         if first {
             continue;
@@ -1069,17 +1084,47 @@ mod tests {
     #[test]
     fn auto_switch_follows_p_checkammo_priority() {
         let all = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-        assert_eq!(auto_switch_target(&view(&all, [1, 3, 1, 1], COMMERCIAL)), WP_PLASMA);
+        assert_eq!(
+            auto_switch_target(&view(&all, [1, 3, 1, 1], COMMERCIAL)),
+            WP_PLASMA
+        );
         // Shareware: no plasma, no SSG.
-        assert_eq!(auto_switch_target(&view(&all, [1, 3, 1, 1], SHAREWARE)), WP_CHAINGUN);
-        assert_eq!(auto_switch_target(&view(&all, [0, 3, 0, 1], COMMERCIAL)), WP_SUPERSHOTGUN);
-        assert_eq!(auto_switch_target(&view(&all, [0, 2, 0, 1], COMMERCIAL)), WP_SHOTGUN);
-        assert_eq!(auto_switch_target(&view(&all, [5, 0, 0, 1], 1)), WP_CHAINGUN);
-        assert_eq!(auto_switch_target(&view(&[0, 1], [5, 0, 0, 0], 1)), WP_PISTOL);
-        assert_eq!(auto_switch_target(&view(&[0, 1, 7], [0, 0, 0, 0], 1)), WP_CHAINSAW);
-        assert_eq!(auto_switch_target(&view(&[0, 1, 4], [0, 0, 0, 2], 1)), WP_MISSILE);
-        assert_eq!(auto_switch_target(&view(&[0, 1, 6], [0, 0, 41, 0], 1)), WP_BFG);
-        assert_eq!(auto_switch_target(&view(&[0, 1, 6], [0, 0, 40, 0], 1)), WP_FIST);
+        assert_eq!(
+            auto_switch_target(&view(&all, [1, 3, 1, 1], SHAREWARE)),
+            WP_CHAINGUN
+        );
+        assert_eq!(
+            auto_switch_target(&view(&all, [0, 3, 0, 1], COMMERCIAL)),
+            WP_SUPERSHOTGUN
+        );
+        assert_eq!(
+            auto_switch_target(&view(&all, [0, 2, 0, 1], COMMERCIAL)),
+            WP_SHOTGUN
+        );
+        assert_eq!(
+            auto_switch_target(&view(&all, [5, 0, 0, 1], 1)),
+            WP_CHAINGUN
+        );
+        assert_eq!(
+            auto_switch_target(&view(&[0, 1], [5, 0, 0, 0], 1)),
+            WP_PISTOL
+        );
+        assert_eq!(
+            auto_switch_target(&view(&[0, 1, 7], [0, 0, 0, 0], 1)),
+            WP_CHAINSAW
+        );
+        assert_eq!(
+            auto_switch_target(&view(&[0, 1, 4], [0, 0, 0, 2], 1)),
+            WP_MISSILE
+        );
+        assert_eq!(
+            auto_switch_target(&view(&[0, 1, 6], [0, 0, 41, 0], 1)),
+            WP_BFG
+        );
+        assert_eq!(
+            auto_switch_target(&view(&[0, 1, 6], [0, 0, 40, 0], 1)),
+            WP_FIST
+        );
         assert_eq!(auto_switch_target(&view(&[0, 1], [0, 0, 0, 0], 1)), WP_FIST);
     }
 
@@ -1111,7 +1156,9 @@ mod tests {
     #[test]
     fn buttons_decode_every_bit() {
         let b = decode_buttons(0xffff);
-        assert!(b.ads && b.reload && b.sprint && b.melee && b.hold_breath && b.swap_last && b.attack);
+        assert!(
+            b.ads && b.reload && b.sprint && b.melee && b.hold_breath && b.swap_last && b.attack
+        );
         assert_eq!(decode_buttons(0), TicButtons::default());
         assert!(decode_buttons(EXT_BT_ATTACK).attack);
     }
@@ -1126,12 +1173,18 @@ mod tests {
         let mut owned = [0; NUMWEAPONS];
         owned[WP_FIST as usize] = 1;
         owned[WP_PISTOL as usize] = 1;
-        assert_eq!(sync_ownership(&mut inv, &m, Some(&pack), &owned), vec![pistol]);
+        assert_eq!(
+            sync_ownership(&mut inv, &m, Some(&pack), &owned),
+            vec![pistol]
+        );
         assert_eq!(inv.magazine(pistol), 12);
         inv.set_magazine(pistol, 3);
         owned[WP_SHOTGUN as usize] = 1;
         owned[WP_SUPERSHOTGUN as usize] = 1;
-        assert_eq!(sync_ownership(&mut inv, &m, Some(&pack), &owned), vec![shotgun]);
+        assert_eq!(
+            sync_ownership(&mut inv, &m, Some(&pack), &owned),
+            vec![shotgun]
+        );
         assert_eq!(inv.magazine(pistol), 3, "existing magazine kept");
         assert_eq!(inv.magazine(shotgun), 8);
         inv.last_held = Some(shotgun);

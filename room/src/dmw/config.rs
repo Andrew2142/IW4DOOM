@@ -936,7 +936,16 @@ mod tests {
         assert!(i.mouse_dmw_look);
         assert!(!i.mouse_dmw_invert);
         assert_eq!(i.mouse_dmw_pitch_sens, 5);
-        for code in [-1, 0, 32, 65, 114, i32::from(KEY_RSHIFT), i32::from(KEY_F5), 200] {
+        for code in [
+            -1,
+            0,
+            32,
+            65,
+            114,
+            i32::from(KEY_RSHIFT),
+            i32::from(KEY_F5),
+            200,
+        ] {
             let k = KeyBind(code);
             let back = match k.name() {
                 Some(n) => KeyBind::from_name(&n),
