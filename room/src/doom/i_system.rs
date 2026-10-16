@@ -386,11 +386,11 @@ pub extern "C" fn I_GetMemoryValue(offset: c_uint, value: *mut c_void, size: c_i
             let p = M_CheckParmWithArgs(c"-setmem".as_ptr().cast_mut(), 1);
             if p > 0 {
                 let arg = *myargv.offset((p + 1) as isize);
-                if libc::strcasecmp(arg, c"dos622".as_ptr()) == 0 {
+                if std::ffi::CStr::from_ptr(arg).to_bytes().eq_ignore_ascii_case(b"dos622") {
                     dos_mem_dump = DosMemDump::Dos622;
-                } else if libc::strcasecmp(arg, c"dos71".as_ptr()) == 0 {
+                } else if std::ffi::CStr::from_ptr(arg).to_bytes().eq_ignore_ascii_case(b"dos71") {
                     dos_mem_dump = DosMemDump::Win98;
-                } else if libc::strcasecmp(arg, c"dosbox".as_ptr()) == 0 {
+                } else if std::ffi::CStr::from_ptr(arg).to_bytes().eq_ignore_ascii_case(b"dosbox") {
                     dos_mem_dump = DosMemDump::Dosbox;
                 } else {
                     let mut idx: usize = 0;
