@@ -750,3 +750,8 @@ pub fn quantize(image: &RgbaImage, pal: &PaletteTables, dither: Dither, alpha: A
 ### Revision 9 — 2026-10-16 (from sheet 05 §11 / sheet 08 §11)
 
 - D18, §4.4, §8.3: the engine's `default.cfg` load/save are no-ops (inherited from room), so the ten DOOMMW2 bindings (`key_dmw_*`, `mouseb_dmw_*`, `mouse_dmw_*`) live in `doommw2.toml` `[input]` (`InputCfg`, `KeyBind`). `on_engine_init` copies them into the `m_controls` statics. Doom's own vanilla bindings are unchanged. Applied by sheet 08.
+
+### Revision 10 — 2026-10-16 (user request; sheet 05 §11 item 12)
+
+- §8.3 / Revision 9: `doommw2.toml` `[input]` also owns Doom's movement and use keys, defaulting to WASD (`key_up = 'w'`, `key_down = 's'`, `key_strafeleft = 'a'`, `key_straferight = 'd'`) and `key_use = 'f'`; arrow left/right still turn. Applied in both MW2 and `-nomw2` modes (demos replay ticcmds, so `demo_playthrough` is unaffected).
+- New HUD prompts (sheet 12): "Press F to open" / "Press F to use" / "Needs <colour> key" when facing a use-activated line in range, and "Press R to reload"; key letters come from the bindings.
