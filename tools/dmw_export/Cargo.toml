@@ -25,6 +25,7 @@ dpvs_iw4 = { path = "../../../iw4L/crates/dpvs_iw4" }
 bevy = { version = "0.20", default-features = false }   # must match iw4L's workspace bevy version exactly
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [patch.crates-io]

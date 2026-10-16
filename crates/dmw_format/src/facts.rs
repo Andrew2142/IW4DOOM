@@ -110,6 +110,10 @@ pub struct FpvFacts {
     pub movement: weapon_iw4::WeaponMovementOfsInputs,
     pub overlay_reticle: i32,
     pub reload_time_ms: i32,
+    /// Time before the end of a reload at which a launcher shows its rocket again
+    /// (`WeaponFpvFacts::reload_show_rocket_time_ms`, sheet 10 §5.8). Absent in older packs: 0.
+    #[serde(default)]
+    pub reload_show_rocket_time_ms: i32,
     #[serde(with = "remote::scope_zoom")]
     pub scope_zoom: weapon_iw4::ScopeZoom,
     /// Debug name of `asset_game::AdsOverlayConvention`: `"WeightIsFrac"` or `"PlayAdsAnim"`.

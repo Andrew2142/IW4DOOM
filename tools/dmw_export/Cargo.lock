@@ -2477,6 +2477,7 @@ dependencies = [
  "dpvs_iw4",
  "frame",
  "master_protocol",
+ "serde",
  "serde_json",
  "weapon_iw4",
  "xmodel_runtime",
@@ -2488,6 +2489,7 @@ version = "0.1.0"
 dependencies = [
  "glam",
  "hound",
+ "log",
  "png 0.17.16",
  "postcard",
  "serde",

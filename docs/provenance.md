@@ -64,3 +64,22 @@ Mirrors the table in `NOTICE`.
 ## Adapted from room (GPL)
 
 - `room/src/dmw/ballistics.rs` `dmw_shoot_traverse` and `wall_hit` are adapted from room's `PTR_ShootTraverse` / `goto_hitline` (`room/src/doom/p_map.rs`, GPL-2.0-or-later): same line, opening and thing tests, recording the hit instead of damaging it. `dmw_radius_thing` adapts `PIT_RadiusAttack` with MW2 damage numbers.
+
+## Exporter (sheet 04)
+
+`tools/dmw_export` copies no iw4L code; it calls iw4L's public API (path dependencies, see the
+crate's `Cargo.toml`). How each part of the pack is read, for the next person who has to find it:
+
+| Pack part | iw4L call path |
+|---|---|
+| headless load | `assets::load_prepared_match` with the arguments of `bootstrap/src/launch.rs` `run_export_gltf` (`ContentFlags::IW4`, `find_runtime_common_mp`) |
+| weapon names | `WeaponRegistry::resolve_index`; pack names are `script_name_of` (`m4_mp`), the registry's own `name_of` drops the `_mp` |
+| display names | `PreparedMatch::strings` is empty after a headless load (the session fills it later), so the exporter reads `asset_game::load_mp_localized_strings` and looks keys up in the weapon's identity namespace like `hud/src/weapon_name.rs` |
+| sounds | `PreparedMatch::sound` holds only the map zone's aliases; the session composes the runtime zones at match start. The exporter uses `asset_audio::load_mp_sound_bank` (same composition). Streamed variants are read with `asset_transport::NamespaceSoundIwd::read_sound`, as `audio/src/clip_store.rs` `prepare_streamed` |
+| textures | colour maps are already decoded by the load (`match_walk.rs` runs `decode_material_color_maps`, the "images/common_mp FPV" stage), so no extra image decode is driven; `asset_material::decoded_image_top_level_rgba8` as in `assets/src/gltf_export.rs` |
+| scope overlay | `WeaponRegistry::overlay_image_of` → `asset_material::decode_ui_image` (`iw4:material/<image>`), as `hud/src/iris.rs` |
+| surface hiding | part hide words are model-local, so a surface is hidden when its part bits AND the words are non-zero (base 0, `render_anim/anim/fpv_rig.rs`); `DObj::surface_visible` lifts by the model's bone base and would not match these words |
+
+iw4L writes a decoded-image cache to `./iw4l-artifacts` (or `$IW4L_ARTIFACTS_DIR`). The exporter
+changes its working directory to `<out>/../.dmw_export-cache` (a temporary directory for
+`--list`) so that MW2-derived bytes never land in the caller's directory.
