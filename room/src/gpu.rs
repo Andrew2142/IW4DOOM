@@ -126,6 +126,17 @@ pub struct GpuState {
     render_pipeline: wgpu::RenderPipeline,
     /// Present at 4:3 (letterboxed) instead of stretching (`[render] aspect_correct`).
     aspect_correct: bool,
+    /// True while frames are being skipped (occluded window or acquire timeout), so the
+    /// skip is logged once per streak instead of once per frame.
+    skipping: std::cell::Cell<bool>,
+}
+
+/// What [`GpuState::acquire`] got from the swapchain.
+enum Acquired {
+    /// A texture to draw into and present.
+    Frame(wgpu::SurfaceTexture),
+    /// No texture this frame (window occluded, minimised or the acquire timed out): skip it.
+    Skip(&'static str),
 }
 
 /// Displayed aspect ratio of the Doom frame when `aspect_correct` is on.
@@ -328,6 +339,7 @@ impl GpuState {
             bind_group,
             render_pipeline,
             aspect_correct,
+            skipping: std::cell::Cell::new(false),
         })
     }
 
@@ -346,6 +358,34 @@ impl GpuState {
         self.surface.configure(&self.device, &self.config);
     }
 
+    /// Gets the next swapchain texture. `Timeout` is treated like `Occluded` (skip the frame);
+    /// `Outdated`/`Lost` reconfigure the surface with the current configuration and retry once.
+    fn acquire(&self) -> Result<Acquired, String> {
+        for attempt in 0..2 {
+            match self.surface.get_current_texture() {
+                // Suboptimal is still usable; present this frame.
+                wgpu::CurrentSurfaceTexture::Success(t)
+                | wgpu::CurrentSurfaceTexture::Suboptimal(t) => return Ok(Acquired::Frame(t)),
+                wgpu::CurrentSurfaceTexture::Occluded => {
+                    return Ok(Acquired::Skip("window occluded or minimised"));
+                }
+                wgpu::CurrentSurfaceTexture::Timeout => {
+                    return Ok(Acquired::Skip("surface acquire timed out"));
+                }
+                wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
+                    if attempt == 0 {
+                        self.surface.configure(&self.device, &self.config);
+                        continue;
+                    }
+                    return Err("surface lost or outdated after reconfiguring".to_owned());
+                }
+                // Handle future variants without breaking the build.
+                _ => return Err("surface error: unknown status".to_owned()),
+            }
+        }
+        Err("surface lost or outdated after reconfiguring".to_owned())
+    }
+
     /// Upload `pixels` to the Doom frame texture and blit it to the surface.
     ///
     /// `pixels` must be exactly `DOOMGENERIC_RESX * DOOMGENERIC_RESY * 4`
@@ -353,8 +393,10 @@ impl GpuState {
     ///
     /// # Errors
     ///
-    /// Returns an error string if the swapchain texture cannot be acquired
-    /// (e.g. the surface is lost or the window is minimised).
+    /// Returns an error string if the swapchain texture cannot be acquired even after
+    /// reconfiguring the surface once. An occluded or minimised window, or an acquire
+    /// timeout (common while the window is hidden or screen-recorded), skips the frame
+    /// and returns `Ok`.
     pub fn render(&self, pixels: &[u8]) -> Result<(), String> {
         self.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
@@ -375,25 +417,16 @@ impl GpuState {
                 depth_or_array_layers: 1,
             },
         );
-        let output = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(t) => t,
-            wgpu::CurrentSurfaceTexture::Suboptimal(t) => {
-                // Surface is suboptimal but still usable; present this frame.
+        let output = match self.acquire()? {
+            Acquired::Frame(t) => {
+                self.skipping.set(false);
                 t
             }
-            wgpu::CurrentSurfaceTexture::Timeout => {
-                return Err("surface timeout".to_owned());
-            }
-            wgpu::CurrentSurfaceTexture::Occluded => {
-                // Window is minimised or hidden; skip this frame.
+            Acquired::Skip(why) => {
+                if !self.skipping.replace(true) {
+                    log::debug!("skipping frames: {why}");
+                }
                 return Ok(());
-            }
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                return Err("surface lost or outdated".to_owned());
-            }
-            // Handle future variants without breaking the build.
-            _ => {
-                return Err("surface error: unknown status".to_owned());
             }
         };
         let view = output
