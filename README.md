@@ -211,4 +211,6 @@ IW4DOOM is built on these projects. If you enjoy it, go and support them.
 - [**room**](https://github.com/sunsided/room) by sunsided: the Rust Doom engine IW4DOOM forks.
 - [**doomgeneric**](https://github.com/ozkl/doomgeneric) by ozkl: the portable Doom source room is ported from.
 
+If you enjoyed this project, don't forget to star the repo.
+
 IW4DOOM is alpha software. Expect rough edges, and please open an issue when something breaks.
