@@ -13,7 +13,7 @@ Read docs/specs/README.md, then docs/specs/00-overview-and-contracts.md, then do
 
 ## Commands
 - task check | task lint | task test | task run | task fetch-wads | task fixture-pack | task export (needs MW2)
-- ./setup.sh (end-user build: checks, export, build, smoke test, writes play.sh)
+- ./iw4doom.sh (Linux) / iw4doom.bat (Windows): the one end-user command (checks, offers installs, export, build, smoke test, launch). Test its failure modes with tools/test-iw4doom-launcher.sh / .ps1.
 
 ## Porting lessons inherited from room (still true)
 - Pass NUL-terminated byte strings (c"..." literals) to C-shaped functions.

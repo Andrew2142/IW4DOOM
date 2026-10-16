@@ -23,6 +23,7 @@ session-*.md
 iw4l-artifacts/
 /.cargo/config.toml
 /play.sh
+/play.bat
 /setup.log
 /.claude/worktrees/
 .claude/agents/
