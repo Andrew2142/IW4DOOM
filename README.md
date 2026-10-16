@@ -156,6 +156,13 @@ flowchart LR
 
 The engine is [room](https://github.com/sunsided/room), a Rust port of doomgeneric. Engine changes are small hooks; the MW2 code lives beside it.
 
+## What's next
+
+- Weapon balance tuned properly against Doom's monsters
+- New enemy types
+- Weapon pickups on the floor using MW2's real 3D models instead of Doom sprites
+- More guns from MW2's arsenal
+
 ## FAQ
 
 <details>
