@@ -23,6 +23,7 @@ These sheets describe the full build. Each sheet is sized to be handed to one bu
 | 5 | 11 (engine half, §6), 12 HUD, crosshair and audio | yes |
 | 6 | 13 Full test catalogue + manual QA with real MW2 data; 04 MW2 exporter verified against a real install | — |
 | 7 | 14 Packaging, one-command setup and GitHub release | — |
+| 8 | 15 Windows support | — |
 
 Sheet 01 is a reference for every wave, not a build task. Sheet 13 §5.1–5.4 (test helpers, headless harness extensions) is built in wave 2 alongside 03, because waves 3–5 need it.
 
@@ -43,6 +44,7 @@ Sheet 01 is a reference for every wave, not a build task. Sheet 13 §5.1–5.4 (
 | 12 | [HUD, crosshair, scope overlays and audio](12-hud-and-audio.md) |
 | 13 | [Testing, fixtures and QA](13-testing-and-qa.md) |
 | 14 | [Packaging, one-command setup and GitHub release](14-packaging-and-release.md) |
+| 15 | [Windows support](15-windows-support.md) |
 
 ## Dependency picture
 
