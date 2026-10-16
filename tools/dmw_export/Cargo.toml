@@ -9,19 +9,20 @@ description = "Offline exporter: MW2 install to DOOMMW2 pack (sheet 04)."
 
 [dependencies]
 dmw_format = { path = "../../crates/dmw_format" }
-assets = { path = "../../../iw4L/crates/assets" }
-asset_game = { path = "../../../iw4L/crates/asset_game" }
-asset_model = { path = "../../../iw4L/crates/asset_model" }
-asset_anim = { path = "../../../iw4L/crates/asset_anim" }
-asset_audio = { path = "../../../iw4L/crates/asset_audio" }
-asset_material = { path = "../../../iw4L/crates/asset_material" }
-asset_transport = { path = "../../../iw4L/crates/asset_transport" }
-asset_core = { path = "../../../iw4L/crates/asset_core" }
-frame = { path = "../../../iw4L/crates/frame" }
-master_protocol = { path = "../../../iw4L/crates/master_protocol" }
-weapon_iw4 = { path = "../../../iw4L/crates/weapon_iw4" }
-xmodel_runtime = { path = "../../../iw4L/crates/xmodel_runtime" }
-dpvs_iw4 = { path = "../../../iw4L/crates/dpvs_iw4" }
+# iw4L at IW4L_REV (tools/check-iw4l-rev.sh). Local checkout: see ../../.cargo/config.toml.example.
+assets = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_game = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_model = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_anim = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_audio = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_material = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_transport = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+asset_core = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+frame = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+master_protocol = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+weapon_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+xmodel_runtime = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+dpvs_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
 bevy = { version = "0.20", default-features = false }   # must match iw4L's workspace bevy version exactly
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

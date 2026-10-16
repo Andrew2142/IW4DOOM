@@ -170,6 +170,7 @@ dependencies = [
 [[package]]
 name = "anim_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
 ]
@@ -324,6 +325,7 @@ dependencies = [
 [[package]]
 name = "asset_anim"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "anim_iw4",
  "asset_core",
@@ -340,6 +342,7 @@ dependencies = [
 [[package]]
 name = "asset_audio"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_core",
  "asset_iw4",
@@ -356,10 +359,12 @@ dependencies = [
 [[package]]
 name = "asset_core"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "asset_game"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "anim_iw4",
  "asset_anim",
@@ -388,6 +393,7 @@ dependencies = [
 [[package]]
 name = "asset_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "d3d9_decl",
  "d3d9_state",
@@ -396,6 +402,7 @@ dependencies = [
 [[package]]
 name = "asset_material"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_core",
  "asset_iw4",
@@ -416,6 +423,7 @@ dependencies = [
 [[package]]
 name = "asset_model"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_core",
  "asset_iw4",
@@ -434,6 +442,7 @@ dependencies = [
 [[package]]
 name = "asset_transport"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_core",
  "diag",
@@ -454,6 +463,7 @@ dependencies = [
 [[package]]
 name = "asset_world"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_core",
  "asset_iw4",
@@ -477,6 +487,7 @@ dependencies = [
 [[package]]
 name = "assets"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_anim",
  "asset_audio",
@@ -2104,6 +2115,7 @@ dependencies = [
 [[package]]
 name = "clipmap_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
  "trace_iw4",
@@ -2347,10 +2359,12 @@ checksum = "f27ae1dd37df86211c42e150270f82743308803d90a6f6e6651cd730d5e1732f"
 [[package]]
 name = "d3d9_decl"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "d3d9_sm3"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "d3d9_decl",
  "d3d9_state",
@@ -2359,6 +2373,7 @@ dependencies = [
 [[package]]
 name = "d3d9_state"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "derive_arbitrary"
@@ -2397,6 +2412,7 @@ dependencies = [
 [[package]]
 name = "diag"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "mimalloc",
  "serde",
@@ -2534,6 +2550,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 [[package]]
 name = "dpvs_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "anim_iw4",
  "libm",
@@ -2542,6 +2559,7 @@ dependencies = [
 [[package]]
 name = "dxbc_sm5"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "either"
@@ -2671,6 +2689,7 @@ dependencies = [
 [[package]]
 name = "fastfile_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_iw4",
 ]
@@ -2678,14 +2697,17 @@ dependencies = [
 [[package]]
 name = "fastfile_iw5"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "fastfile_t5"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "fastfile_t6"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
  "sha1",
@@ -2800,6 +2822,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 [[package]]
 name = "frame"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "bevy",
  "master_protocol",
@@ -2872,6 +2895,7 @@ dependencies = [
 [[package]]
 name = "fx_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "blake3",
  "libm",
@@ -2880,6 +2904,7 @@ dependencies = [
 [[package]]
 name = "gamemode_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
  "math_iw4",
@@ -3163,6 +3188,7 @@ checksum = "62adaabb884c94955b19907d60019f4e145d091c75345379e70d1ee696f7854f"
 [[package]]
 name = "hud_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
  "math_iw4",
@@ -3620,6 +3646,7 @@ dependencies = [
 [[package]]
 name = "lighting_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "fx_iw4",
  "hud_iw4",
@@ -3745,6 +3772,7 @@ dependencies = [
 [[package]]
 name = "master_protocol"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "quinn-proto",
 ]
@@ -3761,6 +3789,7 @@ dependencies = [
 [[package]]
 name = "math_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
 ]
@@ -4494,6 +4523,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 [[package]]
 name = "playerstate_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "libm",
  "math_iw4",
@@ -4794,6 +4824,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 [[package]]
 name = "render_material"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_core",
  "asset_iw4",
@@ -5176,6 +5207,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 [[package]]
 name = "structured_data_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "substring"
@@ -5416,6 +5448,7 @@ checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 [[package]]
 name = "trace_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 
 [[package]]
 name = "tracing"
@@ -5831,6 +5864,7 @@ dependencies = [
 [[package]]
 name = "weapon_iw4"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "asset_iw4",
  "libm",
@@ -6538,6 +6572,7 @@ checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
 [[package]]
 name = "xmodel_runtime"
 version = "0.1.0"
+source = "git+https://github.com/vladtrc/iw4L?rev=fc3d8eaf6045cb131eb74cd41954f0c4922b9913#fc3d8eaf6045cb131eb74cd41954f0c4922b9913"
 dependencies = [
  "anim_iw4",
  "glam",

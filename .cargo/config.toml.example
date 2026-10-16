@@ -1,0 +1,54 @@
+# Local iw4L checkout instead of the pinned git dependency (iw4L development only).
+#
+#   cp .cargo/config.toml.example .cargo/config.toml     # .cargo/config.toml is gitignored
+#
+# Cargo reads this file for the root workspace and for tools/dmw_export (it looks in every
+# parent directory). Paths are relative to the directory that contains .cargo/, so they
+# expect iw4L checked out next to this repository (../iw4L). Keep that checkout at the
+# commit in IW4L_REV unless you are deliberately testing another one, then run
+# tools/check-iw4l-rev.sh. Delete .cargo/config.toml to go back to the git dependency.
+#
+# Every iw4L crate that either Cargo.lock names is listed, so no crate is pulled from
+# both the git source and the path (which would make two incompatible copies). Cargo warns
+# about the ones a workspace does not use; that is harmless.
+#
+# The override rewrites the iw4L entries in Cargo.lock (path instead of git source). Do not
+# commit those lockfile changes: `git checkout Cargo.lock tools/dmw_export/Cargo.lock`.
+
+[patch."https://github.com/vladtrc/iw4L"]
+anim_iw4 = { path = "../iw4L/crates/anim_iw4" }
+asset_anim = { path = "../iw4L/crates/asset_anim" }
+asset_audio = { path = "../iw4L/crates/asset_audio" }
+asset_core = { path = "../iw4L/crates/asset_core" }
+asset_game = { path = "../iw4L/crates/asset_game" }
+asset_iw4 = { path = "../iw4L/crates/asset_iw4" }
+asset_material = { path = "../iw4L/crates/asset_material" }
+asset_model = { path = "../iw4L/crates/asset_model" }
+assets = { path = "../iw4L/crates/assets" }
+asset_transport = { path = "../iw4L/crates/asset_transport" }
+asset_world = { path = "../iw4L/crates/asset_world" }
+clipmap_iw4 = { path = "../iw4L/crates/clipmap_iw4" }
+d3d9_decl = { path = "../iw4L/crates/d3d9_decl" }
+d3d9_sm3 = { path = "../iw4L/crates/d3d9_sm3" }
+d3d9_state = { path = "../iw4L/crates/d3d9_state" }
+diag = { path = "../iw4L/crates/diag" }
+dpvs_iw4 = { path = "../iw4L/crates/dpvs_iw4" }
+dxbc_sm5 = { path = "../iw4L/crates/dxbc_sm5" }
+fastfile_iw4 = { path = "../iw4L/crates/fastfile_iw4" }
+fastfile_iw5 = { path = "../iw4L/crates/fastfile_iw5" }
+fastfile_t5 = { path = "../iw4L/crates/fastfile_t5" }
+fastfile_t6 = { path = "../iw4L/crates/fastfile_t6" }
+frame = { path = "../iw4L/crates/frame" }
+fx_iw4 = { path = "../iw4L/crates/fx_iw4" }
+gamemode_iw4 = { path = "../iw4L/crates/gamemode_iw4" }
+hud_iw4 = { path = "../iw4L/crates/hud_iw4" }
+lighting_iw4 = { path = "../iw4L/crates/lighting_iw4" }
+master_protocol = { path = "../iw4L/crates/master_protocol" }
+math_iw4 = { path = "../iw4L/crates/math_iw4" }
+movement_iw4 = { path = "../iw4L/crates/movement_iw4" }
+playerstate_iw4 = { path = "../iw4L/crates/playerstate_iw4" }
+render_material = { path = "../iw4L/crates/render_material" }
+structured_data_iw4 = { path = "../iw4L/crates/structured_data_iw4" }
+trace_iw4 = { path = "../iw4L/crates/trace_iw4" }
+weapon_iw4 = { path = "../iw4L/crates/weapon_iw4" }
+xmodel_runtime = { path = "../iw4L/crates/xmodel_runtime" }

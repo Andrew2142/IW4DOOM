@@ -20,3 +20,7 @@ session-*.md
 /games/*
 !/games/README.md
 iw4l-artifacts/
+/.cargo/config.toml
+/play.sh
+/setup.log
+/.claude/worktrees/

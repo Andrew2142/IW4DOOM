@@ -14,16 +14,17 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 license = "GPL-3.0-or-later"
-repository = "local"
+repository = "https://github.com/Andrew2142/IW4DOOM"
 
 [workspace.dependencies]
 # iw4L, pinned by IW4L_REV (tools/check-iw4l-rev.sh). Bevy-free crates only.
-weapon_iw4 = { path = "../iw4L/crates/weapon_iw4" }
-movement_iw4 = { path = "../iw4L/crates/movement_iw4" }
-playerstate_iw4 = { path = "../iw4L/crates/playerstate_iw4" }
-math_iw4 = { path = "../iw4L/crates/math_iw4" }
-xmodel_runtime = { path = "../iw4L/crates/xmodel_runtime" }
-anim_iw4 = { path = "../iw4L/crates/anim_iw4" }
+# Local checkout instead: copy .cargo/config.toml.example to .cargo/config.toml.
+weapon_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+movement_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+playerstate_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+math_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+xmodel_runtime = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
+anim_iw4 = { git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }
 # shared third-party versions
 glam = "0.33.2"          # must equal iw4L's workspace glam so xmodel_runtime types are the same type
 serde = { version = "1", features = ["derive"] }
