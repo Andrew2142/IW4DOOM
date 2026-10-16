@@ -54,6 +54,7 @@ pub mod hooks;
 pub mod hud;
 pub mod input;
 pub mod mode;
+pub mod muzzle;
 pub mod save;
 #[cfg(feature = "test-hooks")]
 pub mod test_api;

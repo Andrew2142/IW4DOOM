@@ -172,15 +172,19 @@ muzzle flash (§6.3)
 return true
 ```
 
-### 6.3 Muzzle flash (`[render] muzzle_flash = "doom"`)
+### 6.3 Muzzle flash (`[render] muzzle_flash = "mw2" | "doom" | "none"`)
 
-When `MuzzleState.flash_tics > 0` and `pose.tag_flash` is `Some`:
+When `MuzzleState.flash_tics > 0` (2 tics per shot), the style is not `none` and `pose.tag_flash` is `Some`, the flash is drawn after the gun with no depth test, fullbright (`colormaps[0]`), at the `tag_flash` origin projected with §5.5 (skipped behind the near plane, clipped to the view window so it never reaches the status bar).
+
+`mw2` (default) is procedural (`room/src/dmw/muzzle.rs`, no Doom lumps): a hard-edged star of a white core, pale yellow and yellow body and an orange rim, with 4 to 7 uneven pointed rays, one of them always pointing along the barrel (towards the view centre). Colours are `PaletteTables::nearest` of four RGB tones. Size by `weap_class`: pistol 11.5 px, sniper 8, rocket 12, rifle/SMG/MG 16, shotgun 26 (a seven-ray fan within ±70° of the barrel), nominal diameters at scale 1; the pixelised star comes out a few pixels smaller. Scale is `scaledviewwidth/320 · 24 / x_eye` clamped to 0.6..1.3. Per-shot variation comes from the magazine count (`view.clip`, parity turns the rays, a hash varies angles and lengths); `DmwRng` and Doom's RNG are untouched and the result is deterministic.
+
+`doom` is the previous behaviour:
 
 - Patch by weapon: `weap_class == WEAPCLASS_PISTOL` → `PISFA0`; `WEAPCLASS_SPREAD` → `SHTFA0`/`SHTFB0` alternating per shot; full-auto bullet (`fire_type == FullAuto`) → `CHGFA0`/`CHGFB0` alternating; projectile → `MISFA0`; everything else (semi/bolt rifles) → `SHTFB0`.
-- Position: project the `tag_flash` origin with §5.5; skip if behind the near plane.
-- Scale: `pspritescale/FRACUNIT · 24 / x_eye` (24 in is a typical muzzle distance; a muzzle closer than that draws a bigger flash), clamped 0.4..2.0.
-- Fullbright: `colormaps[0]`, drawn after the gun with no depth test.
+- Scale: `pspritescale/FRACUNIT · 24 / x_eye`, clamped 0.4..2.0.
 - Missing lump (e.g. a PWAD without it) → skip and `log_once!` warn.
+
+The screen brightening (`extralight`, §5.8 of 08) is independent of the style and unchanged.
 
 ### 6.4 Coordination with 06 and 12
 
@@ -254,8 +258,9 @@ No 00 contract change is requested. Item 3 is resolved by 00 Revision 8: `Raster
 15. **Light order follows `R_DrawPSprite`:** invisibility first, then `fixedcolormap` (read from the renderer's `fixedcolormap` pointer, the same value §6.2's `p.fixedcolormap` gives), then `spritelights[MAXLIGHTSCALE-1]` computed exactly as `R_DrawPlayerSprites` does. §6.2 listed `fixedcolormap` before invisibility; vanilla psprites fuzz under invisibility even with light amplification or invulnerability.
 16. **Hook placement.** `draw_player_weapon()` is the first statement of `R_DrawPlayerSprites`, so the hook derives the sprite light itself (it does not rely on the `spritelights` global). It returns `false` unless `weapons::mw2_owns_weapon` (sheet 08 #9), `true` without drawing while the player is dead or the scope overlay is up. It runs under `hooks::guarded`.
 17. **Registry.** `Registry { by_weapon: BTreeMap<u16, Entry>, .. }`, `Entry { prepared, animator, overlay }` as §6.1; it also owns the `Rasterizer` and keeps the last `DrawStats`/light for diagnostics. `prepare_all` loads assets and builds animators on the engine thread (`Pack` is `!Sync`) and quantizes per weapon on scoped threads. A weapon that fails to prepare, and every weapon when the palette tables are missing, is demoted to vanilla (`WeaponMapping::demote`) instead of `mode::fail`, so the rest of MW2 mode keeps running. Overlays are quantized with `AlphaMode::Blend`.
-18. **Muzzle flash.** The A/B alternation uses the magazine parity (`view.clip & 1`), which changes once per shot, so no extra state. Scale uses `scaledviewwidth / 320` (equal to `pspritescale / FRACUNIT` at full detail; also right in low detail, where the patch is blitted at full resolution). Lumps are cached after the first lookup; the blit happens after the `DmwState` borrow is released.
+18. **Muzzle flash.** (`doom` style.) The A/B alternation uses the magazine parity (`view.clip & 1`), which changes once per shot, so no extra state. Scale uses `scaledviewwidth / 320` (equal to `pspritescale / FRACUNIT` at full detail; also right in low detail, where the patch is blitted at full resolution). Lumps are cached after the first lookup; the blit happens after the `DmwState` borrow is released.
 19. **Pixel aspect without `aspect_correct`.** `main.rs` reports the window size (creation and every resize) through `viewmodel::set_window_size`; headless runs without a window use 1.0 (the default 640x400 window).
 20. **T11.8 goldens are engine-path renders in `room/tests/golden/viewmodel_fixture_{idle,fire,reload,ads}.png`** (headless `-fixturepack` run; the sim and `ViewmodelAnimator` pose the gun, `test_api::render_viewmodel` draws it through the hook's own code into a blank buffer at level 8 with directional shading). The crate-half goldens (item 12) stay. At these poses the fixture's red marker texel is not visible (the faces it sits on are seen at mip ≥ 1 or are off-screen), so orientation is asserted geometrically instead: the left hand lands right of and below the centre, the muzzle end up and left of the gun body, and centred at full ADS. The fixture mesh gives every weapon a `Rocket` box in front of the muzzle and sheet 10's `visibility` reports `rocket = true` whenever the magazine is loaded, so the olive box shows on the fixture pistol; real packs only carry rocket parts on launchers.
 21. **T11.9 status bar.** Sheet 08 shows the DOOMMW2 ammo maxima (360/64/12/300) in the status bar's max-ammo column, the only difference from `-nomw2` (43 pixels, x 302..313). Both runs blank x 300..316, y 172..198 and compare against one golden (`e1m1_t60_statusbar.png`); everything else in rows 168..199 is byte-identical.
 22. **Measured.** Fixture pistol, engine path, release: `Rasterizer::draw` median 116 µs (min 106, max 377) over 200 draws, 208 triangles in, 106 drawn, 4 202 pixels. Sector light 96 at the E1M1 start gives colormap level 13, 5 on the firing tic (muzzle `extralight` 2).
+23. **Procedural muzzle flash replaces the Doom sprite as default.** The Doom chaingun sprite on an MW2 rifle was too large and read as a minigun, so `FlashCfg` is now `Mw2` (default), `Doom`, `None` and §6.3 describes the procedural burst. Goldens: `viewmodel_flash_{pistol,shotgun,rifle}.png` (mid-flash, `mw2`), `viewmodel_flash_rifle_doom.png` and `viewmodel_flash_rifle_none.png` (`room/tests/viewmodel_flash_headless.rs`); `viewmodel_fixture_fire.png` is rendered with `doom` and is unchanged. Contract note for 00 §8.5: the `muzzle_flash` default is now `"mw2"`.

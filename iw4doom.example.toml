@@ -61,8 +61,9 @@ viewmodel_fov = 65.0
 dither = "bayer4"
 # Directional shading term on the viewmodel.
 directional_shading = true
-# Muzzle flash: "doom" (Doom flash patch at the weapon's flash tag) or "none".
-muzzle_flash = "doom"
+# Muzzle flash at the weapon's flash tag: "mw2" (small procedural burst), "doom" (Doom flash
+# sprite) or "none".
+muzzle_flash = "mw2"
 
 [input]
 # Use raw, unaccelerated mouse motion.

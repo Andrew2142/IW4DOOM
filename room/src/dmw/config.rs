@@ -284,7 +284,7 @@ impl Default for RenderCfg {
             viewmodel_fov: VIEWMODEL_FOV_DEFAULT,
             dither: DitherCfg::Bayer4,
             directional_shading: true,
-            muzzle_flash: FlashCfg::Doom,
+            muzzle_flash: FlashCfg::Mw2,
         }
     }
 }
@@ -303,6 +303,8 @@ pub enum DitherCfg {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum FlashCfg {
+    /// A small procedural MW2-style burst at `tag_flash` (the default).
+    Mw2,
     /// Doom's flash patch drawn at `tag_flash`.
     Doom,
     /// No muzzle flash.
@@ -847,6 +849,12 @@ mod tests {
             toml::from_str("[render]\ndither = \"none\"\nmuzzle_flash = \"none\"\n").expect("ok");
         assert_eq!(cfg.render.dither, DitherCfg::None);
         assert_eq!(cfg.render.muzzle_flash, FlashCfg::None);
+        for (name, want) in [("mw2", FlashCfg::Mw2), ("doom", FlashCfg::Doom)] {
+            let cfg: DmwConfig =
+                toml::from_str(&format!("[render]\nmuzzle_flash = \"{name}\"\n")).expect("ok");
+            assert_eq!(cfg.render.muzzle_flash, want);
+        }
+        assert_eq!(RenderCfg::default().muzzle_flash, FlashCfg::Mw2);
     }
 
     #[test]

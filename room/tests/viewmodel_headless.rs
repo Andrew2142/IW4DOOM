@@ -17,6 +17,7 @@ mod support;
 
 use std::collections::BTreeSet;
 
+use room::dmw::config::FlashCfg;
 use room::dmw::test_api;
 use room::dmw::viewmodel::Light;
 use room::doom::d_player::PlayerT;
@@ -325,7 +326,11 @@ fn viewmodel_headless() {
         "firing brightens the gun: level {fire_level} vs idle {idle_level}"
     );
     eprintln!("colormap level at sector light 96: idle {idle_level}, firing {fire_level}");
+    // This golden pins the Doom flash patch ("doom"); the procedural default is covered by
+    // `viewmodel_flash_headless.rs`.
+    test_api::set_muzzle_flash(FlashCfg::Doom);
     golden_render("viewmodel_fixture_fire", bg);
+    test_api::set_muzzle_flash(FlashCfg::Mw2);
     // SAFETY: as above.
     unsafe { (*sector).lightlevel = bright };
     h.run_tics(10);

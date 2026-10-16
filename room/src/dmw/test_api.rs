@@ -137,3 +137,8 @@ pub fn viewmodel_palette_set(id: dmw_format::DmwWeaponId) -> std::collections::B
     })
     .unwrap_or_default()
 }
+
+/// Switches `[render] muzzle_flash` at run time (goldens of every style from one engine).
+pub fn set_muzzle_flash(style: super::config::FlashCfg) {
+    with_state(|s| s.config.render.muzzle_flash = style);
+}

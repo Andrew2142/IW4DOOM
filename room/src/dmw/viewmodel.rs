@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Viewmodel glue (sheet 11 section 6): the prepared-model registry, the
 //! `draw_player_weapon` hook body, light derivation, the view-window `DrawTarget` and the
-//! muzzle flash patch.
+//! muzzle flash (procedural burst from [`super::muzzle`], or the Doom patch).
 //!
 //! Sheet 08 owns the call sites of [`prepare_all`] (once per session at the first active level
 //! start) and [`on_tic`] (after every MW2 tic). `hooks::draw_player_weapon` delegates to
@@ -25,7 +25,7 @@ use log::{error, info, trace, warn};
 use weapon_iw4::{WEAPCLASS_PISTOL, WEAPCLASS_SPREAD, WEAPTYPE_BULLET, WEAPTYPE_PROJECTILE};
 
 use super::config::{DitherCfg, FlashCfg, RenderCfg};
-use super::{mode, weapons, with_state, DmwState};
+use super::{mode, muzzle, weapons, with_state, DmwState};
 
 const TARGET: &str = "dmw::raster";
 
@@ -442,19 +442,25 @@ pub fn flash_patch(
     }
 }
 
-/// Flash patch scale for a muzzle `x_eye` inches in front of the eye (section 6.3);
-/// `view_scale` is `scaledviewwidth / 320` (`pspritescale / FRACUNIT` at full detail).
+/// Doom flash patch scale (`muzzle_flash = "doom"`) for a muzzle `x_eye` inches in front of
+/// the eye (section 6.3); `view_scale` is `scaledviewwidth / 320` (`pspritescale / FRACUNIT`
+/// at full detail).
 pub fn flash_scale(view_scale: f32, x_eye: f32) -> f32 {
     (view_scale * FLASH_REF_DIST / x_eye).clamp(0.4, 2.0)
 }
 
-/// A flash patch to blit after the state borrow is released.
+/// A flash to draw after the state borrow is released.
 #[derive(Clone, Copy, Debug)]
-struct FlashRequest {
-    lump: &'static CStr,
-    cx: f32,
-    cy: f32,
-    scale: f32,
+enum FlashRequest {
+    /// Doom flash patch (`muzzle_flash = "doom"`).
+    Patch {
+        lump: &'static CStr,
+        cx: f32,
+        cy: f32,
+        scale: f32,
+    },
+    /// Procedural MW2 burst (`muzzle_flash = "mw2"`).
+    Burst(muzzle::Burst),
 }
 
 /// Draws the held weapon of `view` into `pixels` (320x200) through the registry's rasterizer:
@@ -470,7 +476,8 @@ fn render_gun(
 ) -> Option<(DrawStats, Option<FlashRequest>)> {
     let id = view.weapon?;
     let pal = s.palette.clone()?;
-    let flash_on = s.config.render.muzzle_flash == FlashCfg::Doom && s.muzzle.flash_tics > 0;
+    let flash_cfg = s.config.render.muzzle_flash;
+    let flash_on = flash_cfg != FlashCfg::None && s.muzzle.flash_tics > 0;
     let facts = s.pack.as_ref().and_then(|p| p.try_facts(id)).map(|f| {
         (
             f.combat.weap_class,
@@ -526,12 +533,30 @@ fn render_gun(
     let flash = match (flash_on, pose.tag_flash, facts) {
         (true, Some(m), Some((class, wtype, fire, proj))) => {
             let origin = flash_origin(&m);
+            let view_scale = win.w as f32 / DOOM_SCREEN_W as f32;
             win.project(origin, view.viewmodel_fov_deg)
-                .map(|(cx, cy)| FlashRequest {
-                    lump: flash_patch(class, wtype, fire, proj, view.clip & 1 == 1),
-                    cx,
-                    cy,
-                    scale: flash_scale(win.w as f32 / DOOM_SCREEN_W as f32, origin.x),
+                .map(|(cx, cy)| match flash_cfg {
+                    FlashCfg::Doom => FlashRequest::Patch {
+                        lump: flash_patch(class, wtype, fire, proj, view.clip & 1 == 1),
+                        cx,
+                        cy,
+                        scale: flash_scale(view_scale, origin.x),
+                    },
+                    _ => {
+                        let centre = (
+                            win.x as f32 + win.w as f32 / 2.0,
+                            win.y as f32 + win.h as f32 / 2.0,
+                        );
+                        FlashRequest::Burst(muzzle::Burst {
+                            kind: muzzle::classify(class, wtype, proj),
+                            variant: view.clip as u32,
+                            scale: muzzle::scale(view_scale, origin.x),
+                            cx,
+                            cy,
+                            fwd: muzzle::direction((cx, cy), centre),
+                            pixel_aspect: win.pixel_aspect,
+                        })
+                    }
                 })
         }
         _ => None,
@@ -581,23 +606,51 @@ unsafe fn video_buffer<'a>() -> Option<&'a mut [u8]> {
     }
 }
 
-/// Blits a flash patch fullbright over the gun (no depth test).
+/// Draws a flash fullbright over the gun (no depth test), clipped to the view window.
 fn draw_flash(req: FlashRequest, win: Window, pal: &PaletteTables, pixels: &mut [u8]) {
-    let Some(lump) = flash_lump(req.lump) else {
-        log_once!(
-            TARGET,
-            log::Level::Warn,
-            &format!("flash:{}", req.lump.to_string_lossy()),
-            "muzzle flash patch {} missing from the WADs; no flash drawn",
-            req.lump.to_string_lossy()
-        );
-        return;
-    };
     let Some(fullbright) = pal.colormaps.first() else {
         return;
     };
+    let (lump_name, cx, cy, scale) = match req {
+        FlashRequest::Patch {
+            lump,
+            cx,
+            cy,
+            scale,
+        } => (lump, cx, cy, scale),
+        FlashRequest::Burst(burst) => {
+            let tone = |t: muzzle::Tone| fullbright[usize::from(pal.nearest(t.rgb()))];
+            let colours = [
+                tone(muzzle::Tone::White),
+                tone(muzzle::Tone::Pale),
+                tone(muzzle::Tone::Yellow),
+                tone(muzzle::Tone::Orange),
+            ];
+            let (x1, y1) = (win.x + win.w, win.y + win.h);
+            for (x, y, t) in muzzle::pixels(&burst) {
+                let inside = x >= win.x.max(0)
+                    && x < x1.min(DOOM_SCREEN_W as i32)
+                    && y >= win.y.max(0)
+                    && y < y1.min(DOOM_SCREEN_H as i32);
+                if inside {
+                    pixels[y as usize * DOOM_SCREEN_W + x as usize] = colours[t as usize];
+                }
+            }
+            return;
+        }
+    };
+    let Some(lump) = flash_lump(lump_name) else {
+        log_once!(
+            TARGET,
+            log::Level::Warn,
+            &format!("flash:{}", lump_name.to_string_lossy()),
+            "muzzle flash patch {} missing from the WADs; no flash drawn",
+            lump_name.to_string_lossy()
+        );
+        return;
+    };
     let mut target = win.target(pixels);
-    overlay::blit_doom_patch(&mut target, lump, req.cx, req.cy, req.scale, fullbright);
+    overlay::blit_doom_patch(&mut target, lump, cx, cy, scale, fullbright);
 }
 
 /// What the hook decided inside the state borrow.
