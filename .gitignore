@@ -25,3 +25,4 @@ iw4l-artifacts/
 /play.sh
 /setup.log
 /.claude/worktrees/
+.claude/agents/
