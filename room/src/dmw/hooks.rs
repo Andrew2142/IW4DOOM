@@ -201,6 +201,7 @@ pub(crate) fn on_engine_init() {
 /// `G_DoLoadLevel`, end: evaluate mode gating, `WeaponSim::start_level`, prepare viewmodels
 /// (sheet 08 section 5.10).
 pub(crate) fn on_level_start() {
+    super::interp::on_level_start();
     guarded("on_level_start", (), || {
         let was_active = mode::level_active();
         // SAFETY: engine globals read on the engine thread after `P_SetupLevel`.
@@ -291,6 +292,40 @@ fn player_ptr(cp: c_int) -> Option<*mut PlayerT> {
 pub(crate) unsafe fn on_build_ticcmd(cmd: *mut TiccmdT, maketic: c_int) {
     // SAFETY: forwarded unchanged; the caller passes the ticcmd it just built.
     unsafe { super::input::on_build_ticcmd(cmd, maketic) }
+    // SAFETY: `cmd` is the command just built; the ext ring slot was just written.
+    let (turn, pitch) = unsafe {
+        let slot = maketic.rem_euclid(crate::doom::c_ffi::BACKUPTICS as c_int) as usize;
+        let ext = (&raw const super::ext::EXT_TICCMDS)
+            .cast::<super::ext::ExtTiccmd>()
+            .add(slot)
+            .read();
+        ((*cmd).angleturn, ext.pitch_delta)
+    };
+    super::interp::on_build_ticcmd(maketic, turn, pitch);
+}
+
+/// `TryRunTics`: `true` = no tic due and frames are uncapped; return without waiting.
+pub(crate) fn uncapped_return_early(availabletics: c_int) -> bool {
+    super::interp::return_early(availabletics)
+}
+
+/// `P_Ticker`, after the pause checks: snapshot for frame interpolation.
+pub(crate) fn on_ticker_start() {
+    guarded("on_ticker_start", (), super::interp::on_ticker_start);
+}
+
+/// `D_Display`, before `R_RenderPlayerView`: swap in blended positions.
+pub(crate) fn begin_frame() -> super::interp::Restore {
+    guarded(
+        "begin_frame",
+        super::interp::Restore::default(),
+        super::interp::begin_frame,
+    )
+}
+
+/// `D_Display`, after `R_RenderPlayerView`: restore the real positions.
+pub(crate) fn end_frame(restore: super::interp::Restore) {
+    super::interp::end_frame(restore);
 }
 
 /// `G_Responder`, `ev_mouse` arm: `true` when mouse Y should drive pitch instead of movement.

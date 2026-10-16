@@ -213,6 +213,9 @@ pub extern "C" fn P_Ticker() {
             return;
         }
 
+        // DOOMMW2 (sheet 16): snapshot positions for the uncapped renderer.
+        crate::dmw::hooks::on_ticker_start();
+
         for i in 0..MAXPLAYERS {
             if playeringame[i] != 0 {
                 P_PlayerThink(&mut players[i]);

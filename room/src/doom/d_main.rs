@@ -686,7 +686,10 @@ pub extern "C" fn D_Display() {
         if gamestate == GS_LEVEL && automapactive == 0 && gametic != 0 {
             let dp = displayplayer as usize;
             if dp < MAXPLAYERS {
+                // DOOMMW2 (sheet 16): blended positions for this frame only.
+                let restore = crate::dmw::hooks::begin_frame();
                 R_RenderPlayerView(std::ptr::addr_of_mut!(players[dp]));
+                crate::dmw::hooks::end_frame(restore);
                 crate::dmw::hooks::draw_view_overlays();
             }
             HU_Drawer();

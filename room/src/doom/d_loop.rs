@@ -64,6 +64,12 @@ static mut TICDATA: [TiccmdSetT; BACKUPTICS] = unsafe { std::mem::zeroed() };
 /// Incremented by `build_new_tic`. Corresponds to `maketic` in `d_loop.c`.
 static mut MAKETIC: c_int = 0;
 
+/// DOOMMW2 (sheet 16): the next tic without a built command, for the uncapped renderer.
+pub(crate) fn maketic() -> c_int {
+    // SAFETY: plain int read on the engine thread.
+    unsafe { MAKETIC }
+}
+
 /// Number of complete tic command sets received from the server.
 ///
 /// In single-player mode this advances in lock-step with `MAKETIC` via
@@ -574,6 +580,14 @@ pub extern "C" fn TryRunTics() {
 
         let mut lowtic = get_low_tic();
         let availabletics = lowtic - gametic / ticdup;
+
+        // DOOMMW2 (sheet 16): with an uncapped frame rate, draw a frame instead of waiting.
+        // Input is read every frame so mouse look can be shown before the next tic.
+        if crate::dmw::hooks::uncapped_return_early(availabletics) {
+            I_StartTic();
+            (*LOOP_INTERFACE).ProcessEvents.unwrap()();
+            return;
+        }
 
         let counts: c_int;
         if NEW_SYNC != 0 {

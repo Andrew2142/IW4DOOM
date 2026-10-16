@@ -54,6 +54,7 @@ pub mod freelook;
 pub mod hooks;
 pub mod hud;
 pub mod input;
+pub mod interp;
 pub mod mode;
 pub mod muzzle;
 pub mod save;

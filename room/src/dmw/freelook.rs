@@ -374,6 +374,11 @@ pub(crate) unsafe fn on_setup_frame(player: *mut PlayerT) {
         );
     }
     let fine = fine_fov_for(hfov);
+    // Sheet 16: mouse pitch not yet applied by a tic is shown this frame.
+    let pitch_q = (pitch_q + crate::dmw::interp::frame_pitch_q()).clamp(
+        -crate::dmw::ext::PITCH_LIMIT_Q,
+        crate::dmw::ext::PITCH_LIMIT_Q,
+    );
     let pitch = rendered_pitch_deg(pitch_q, kick[0]);
     let old_fov = view().fov_key;
     update_view(|v| {

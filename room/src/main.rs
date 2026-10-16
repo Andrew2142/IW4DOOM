@@ -88,6 +88,11 @@ struct App {
 
     /// `iw4doom.toml` `[render] aspect_correct`: 4:3 letterboxed presentation.
     aspect_correct: bool,
+
+    /// `[render] max_fps` as a minimum frame time while uncapped (`None` = vsync only).
+    min_frame: Option<std::time::Duration>,
+    /// When the last frame started, for the `max_fps` cap.
+    last_frame: Option<std::time::Instant>,
 }
 
 /// Manual [`Send`] impl: the raw pointers in `argv` reference `CString` data
@@ -109,7 +114,7 @@ impl App {
     ///
     /// Arguments are converted to null-terminated C strings, and a parallel
     /// `argv` array of raw pointers is built.
-    fn new(aspect_correct: bool) -> Self {
+    fn new(aspect_correct: bool, max_fps: u32) -> Self {
         let args: Vec<CString> = std::env::args()
             .map(|a| CString::new(a).expect("argument contained null byte"))
             .collect();
@@ -123,6 +128,9 @@ impl App {
             argv,
             doom_initialized: false,
             aspect_correct,
+            min_frame: (max_fps > 0)
+                .then(|| std::time::Duration::from_secs_f64(1.0 / f64::from(max_fps))),
+            last_frame: None,
         }
     }
 }
@@ -280,7 +288,15 @@ impl ApplicationHandler for App {
             }
             self.doom_initialized = true;
         } else {
-            // Subsequent ticks: advance the game by one tick.
+            // `[render] max_fps`: wait out the rest of the frame time before the next frame.
+            if let (Some(min), Some(last)) = (self.min_frame, self.last_frame) {
+                if let Some(rest) = min.checked_sub(last.elapsed()) {
+                    std::thread::sleep(rest);
+                }
+            }
+            self.last_frame = Some(std::time::Instant::now());
+            // Subsequent ticks: run the tics that are due (none when uncapped and early) and
+            // draw a frame.
             room::doom::d_main::doomgeneric_Tick();
         }
 
@@ -322,7 +338,8 @@ fn main() {
     // Poll continuously so we can tick the game as fast as possible.
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-    let mut app = App::new(config.render.aspect_correct);
+    room::dmw::interp::set_allowed(config.render.uncapped);
+    let mut app = App::new(config.render.aspect_correct, config.render.max_fps);
     if let Err(e) = event_loop.run_app(&mut app) {
         log::error!("Event loop error: {e}");
         std::process::exit(1);

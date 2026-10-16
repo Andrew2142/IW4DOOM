@@ -171,6 +171,14 @@ pub(crate) fn scale_yaw(mousex: c_int) -> c_int {
 }
 
 /// Removes the pitch accumulated since the last call, in `pitch_q` units, clamped to `i16`.
+/// Whole `pitch_q` units accumulated but not yet taken by a ticcmd (sheet 16).
+pub(crate) fn peek_pending_q() -> i32 {
+    PITCH.with(|p| {
+        let mut copy = *p.borrow();
+        copy.take_q(i32::from(i16::MAX))
+    })
+}
+
 fn take_pending_q() -> i16 {
     PITCH.with(|p| p.borrow_mut().take_q(i32::from(i16::MAX))) as i16
 }

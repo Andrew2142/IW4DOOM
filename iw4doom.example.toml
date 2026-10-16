@@ -64,6 +64,11 @@ directional_shading = true
 # Muzzle flash at the weapon's flash tag: "mw2" (small procedural burst), "doom" (Doom flash
 # sprite) or "none".
 muzzle_flash = "mw2"
+# Draw frames between Doom's 35 tics per second: movement is blended and mouse look updates
+# every frame. false = classic 35 fps.
+uncapped = true
+# Frame-rate cap while uncapped (0 = follow vsync only).
+max_fps = 0
 
 [input]
 # Use raw, unaccelerated mouse motion.

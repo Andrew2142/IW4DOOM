@@ -602,6 +602,12 @@ static mut MOUSEARRAY: [boolean; MAX_MOUSE_BUTTONS + 1] = [0; MAX_MOUSE_BUTTONS 
 // mousebuttons is &mousearray[1] in C — negative indexing; access via MOUSEARRAY[1+n]
 /// Most recent raw mouse delta on the X axis (cleared each tic by `G_BuildTiccmd`).
 static mut MOUSEX: c_int = 0;
+
+/// DOOMMW2 (sheet 16): mouse yaw counts not yet put into a ticcmd.
+pub(crate) fn pending_mousex() -> c_int {
+    // SAFETY: plain int read on the engine thread.
+    unsafe { MOUSEX }
+}
 /// Most recent raw mouse delta on the Y axis (cleared each tic by `G_BuildTiccmd`).
 static mut MOUSEY: c_int = 0;
 

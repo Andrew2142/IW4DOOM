@@ -275,6 +275,10 @@ pub struct RenderCfg {
     pub directional_shading: bool,
     /// Muzzle flash style.
     pub muzzle_flash: FlashCfg,
+    /// Draw frames between tics (blended positions, per-frame mouse look) instead of 35 fps.
+    pub uncapped: bool,
+    /// Frame-rate cap while uncapped; 0 = only vsync paces frames.
+    pub max_fps: u32,
 }
 
 impl Default for RenderCfg {
@@ -285,6 +289,8 @@ impl Default for RenderCfg {
             dither: DitherCfg::Bayer4,
             directional_shading: true,
             muzzle_flash: FlashCfg::Mw2,
+            uncapped: true,
+            max_fps: 0,
         }
     }
 }
