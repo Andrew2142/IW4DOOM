@@ -36,6 +36,8 @@ const TARGET: &str = "dmw::input";
 
 /// `BT_ATTACK` ticcmd button bit.
 const BT_ATTACK: u8 = 1;
+/// `BT_SPECIAL` ticcmd button bit (the other bits then mean `BTS_*`).
+const BT_SPECIAL: u8 = 128;
 /// `PST_DEAD` player state.
 const PST_DEAD: c_int = 1;
 
@@ -238,7 +240,9 @@ fn mouse(button: c_int) -> bool {
 /// `cmd` must point to the `TiccmdT` just built by `G_BuildTiccmd`.
 pub(crate) unsafe fn on_build_ticcmd(cmd: *mut TiccmdT, maketic: c_int) {
     // SAFETY: the caller guarantees `cmd` is valid.
-    let attack = unsafe { (*cmd).buttons } & BT_ATTACK != 0;
+    let buttons = unsafe { (*cmd).buttons };
+    // A special command (pause, save) reuses the low bits: BTS_PAUSE is bit 0 (sheet 08).
+    let attack = buttons & BT_SPECIAL == 0 && buttons & BT_ATTACK != 0;
     // SAFETY: plain ints written at startup/config load on the main thread.
     let (reload, ads_key, ads_mouse, melee_key, melee_mouse, swap, sprint) = unsafe {
         (

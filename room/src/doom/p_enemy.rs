@@ -1819,6 +1819,9 @@ pub unsafe extern "C" fn A_Fall(actor: *mut mobj_t) {
 /// to `P_RadiusAttack`). Called from C.
 #[no_mangle]
 pub unsafe extern "C" fn A_Explode(thingy: *mut mobj_t) {
+    if crate::dmw::hooks::on_explode(thingy) {
+        return;
+    }
     P_RadiusAttack(
         thingy as *mut CffiMobj,
         (*thingy).target as *mut CffiMobj,

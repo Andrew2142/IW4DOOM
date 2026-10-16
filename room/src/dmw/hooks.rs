@@ -225,17 +225,20 @@ pub(crate) fn on_level_start() {
                 demoplayback: playback,
                 failed: false,
             };
-            let result = mode::evaluate(&gate);
+            let result = match (mode::evaluate(&gate), player) {
+                (Ok(()), None) => Err("the console player has no map object"),
+                (r, _) => r,
+            };
             mode::set_level(result);
-            match (result, player) {
-                (Ok(()), Some(p)) => {
+            match (result, player, s.pack.clone()) {
+                (Ok(()), Some(p), Some(pack)) => {
                     // SAFETY: `player_ptr` returned the live console player.
                     let p = unsafe { &mut *p };
                     let seed = DmwRng::level_seed(skill, episode, map);
                     weapons::level_start(s, p, episode, map, seed);
+                    Some((pack, s.config.balance.clone()))
                 }
-                (Ok(()), None) => {}
-                (Err(_), p) => {
+                (_, p, _) => {
                     if std::mem::take(&mut s.driver.maxima_applied) {
                         if let Some(p) = p {
                             // SAFETY: as above.
@@ -244,12 +247,20 @@ pub(crate) fn on_level_start() {
                     }
                     s.driver.owner = weapons::Owner::Vanilla;
                     s.last_out = None;
+                    None
                 }
             }
         });
-        if decided.is_none() {
-            // No state (engine init did not run) or busy: MW2 mode stays off.
-            mode::set_level(Err("DOOMMW2 state unavailable"));
+        match decided {
+            None => {
+                // No state (engine init did not run) or busy: MW2 mode stays off.
+                mode::set_level(Err("DOOMMW2 state unavailable"));
+            }
+            Some(Some((pack, balance))) => {
+                super::ballistics::configure(pack, balance);
+                super::ballistics::reset_level();
+            }
+            Some(None) => {}
         }
         super::reset_log_once();
         if mode::level_active() {
@@ -341,22 +352,18 @@ pub(crate) unsafe fn on_player_think(player: *mut PlayerT) -> bool {
 /// # Safety
 /// `player` is the live console player with a live map object.
 unsafe fn run_actions(player: *mut PlayerT, actions: Vec<Action>) {
-    use crate::doom::p_enemy::P_NoiseAlert;
     use crate::doom::p_mobj::P_SetMobjState;
     use crate::doom::statenum::{S_PLAY_ATK1, S_PLAY_ATK2};
     // SAFETY: caller contract.
     let mo = unsafe { (*player).mo.cast::<mobj_t>() };
     for action in actions {
         match action {
-            Action::Shot { req, alert } => {
+            Action::Shot(req) => {
                 // SAFETY: `mo` is the player's live map object; Doom functions on the engine
-                // thread, no DOOMMW2 borrow held.
+                // thread, no DOOMMW2 borrow held. `fire` makes the noise alert itself.
                 unsafe {
                     P_SetMobjState(mo, S_PLAY_ATK2);
                     super::ballistics::fire(player, &req);
-                    if alert && !(*player).mo.is_null() {
-                        P_NoiseAlert(mo, mo);
-                    }
                 }
             }
             Action::Melee(req) => {
@@ -462,12 +469,16 @@ pub(crate) fn scale_ammo_pickup(ammo: c_int, num: c_int) -> c_int {
 }
 
 /// `A_Explode`, first statement: `true` when an MW2 explosion handled the thing.
-pub(crate) unsafe fn on_explode(_thing: *mut mobj_t) -> bool {
-    false
+pub(crate) unsafe fn on_explode(thing: *mut mobj_t) -> bool {
+    // SAFETY: forwarded unchanged; the caller passes the thing `A_Explode` received.
+    unsafe { super::ballistics::on_explode(thing) }
 }
 
 /// `P_RemoveMobj`, first statement: forget MW2 missiles that vanish.
-pub(crate) unsafe fn on_remove_mobj(_mo: *mut mobj_t) {}
+pub(crate) unsafe fn on_remove_mobj(mo: *mut mobj_t) {
+    // SAFETY: forwarded unchanged; the address is only used as a registry key.
+    unsafe { super::ballistics::on_remove_mobj(mo) }
+}
 
 /// `R_SetupFrame`, end: shear, view kick, FOV zoom.
 pub(crate) unsafe fn on_setup_frame(player: *mut PlayerT) {

@@ -446,13 +446,9 @@ pub struct Driver {
 /// A Doom-side effect to run after the `DmwState` borrow is released.
 #[derive(Debug)]
 pub enum Action {
-    /// Player attack frame, sheet 09 `fire`, optional noise alert.
-    Shot {
-        /// The shot.
-        req: ShotRequest,
-        /// `[balance] alert_monsters_on_fire`.
-        alert: bool,
-    },
+    /// Player attack frame and sheet 09 `fire` (which also makes the noise alert when
+    /// `[balance] alert_monsters_on_fire` is set).
+    Shot(ShotRequest),
     /// Player punch frame and sheet 09 `melee`.
     Melee(MeleeRequest),
     /// Sheet 12 sound.
@@ -721,15 +717,11 @@ pub unsafe fn think(
     pe.zoom_hfov_deg = view.zoom_hfov_deg;
 
     s.muzzle.begin_tic();
-    let alert = s.config.balance.alert_monsters_on_fire;
     for ev in &out.events {
         #[cfg(feature = "test-hooks")]
         s.recorder.record(leveltime, ev);
         match ev {
-            SimEvent::Shot(req) => plan.actions.push(Action::Shot {
-                req: req.clone(),
-                alert,
-            }),
+            SimEvent::Shot(req) => plan.actions.push(Action::Shot(req.clone())),
             SimEvent::Melee(req) => plan.actions.push(Action::Melee(req.clone())),
             SimEvent::Sound(cue) => plan.actions.push(Action::Sound(cue.clone())),
             SimEvent::MuzzleFlash { .. } => s.muzzle.fire(),

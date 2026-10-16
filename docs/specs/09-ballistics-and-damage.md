@@ -182,3 +182,17 @@ Puffs and blood call `P_Random` (Doom's table) exactly as Doom's own guns do. DO
 ## 11. Contract changes requested
 
 1. 00 §7.5: add rows `A_Explode (p_enemy.rs) → on_explode(thing) -> bool` and `P_RemoveMobj (p_mobj.rs) → on_remove_mobj(mo)`, body owner 09. — Resolved in 00 Revision 4.
+
+### Build notes (sheet 09 implemented)
+
+No change to 00 is needed. Implementation notes for the lead and for sheet 08:
+
+2. **Pack and balance access.** `DmwState` and `with_state` are still stubs, so ballistics keeps its own `thread_local` context. Sheet 08 must call `ballistics::configure(Arc<Pack>, BalanceCfg)` and `ballistics::reset_level()` from `on_level_start` (the latter clears `MISSILES`). `MISSILES` lives in `ballistics.rs` rather than `DmwState` for the same reason; move it when `DmwState` exists.
+3. **Signatures.** `pub unsafe fn fire(player: *mut PlayerT, req: &ShotRequest)` and `pub unsafe fn melee(player: *mut PlayerT, req: &MeleeRequest)`. Weapon facts come from the configured pack by `req.weapon`; an unknown id or an unconfigured pack logs once and does nothing.
+4. **Aim.** The trace end point is computed from the exact float direction (not quantised to fine angles), so MW2 spread of tenths of a degree survives. `attackrange` is the horizontal length `range * horiz`.
+5. **`P_NoiseAlert`** is called once per `fire` when `[balance] alert_monsters_on_fire` is true (Doom does it in `P_FireWeapon`); it is not called for melee.
+6. **Explosions.** `explosion_radius_min` is ignored (sheet 09 §5.7 does not use it). A fired rocket that hits a sky ceiling explodes (vanilla `P_ZMovement`), it is only removed silently when `P_XYMovement` hits a sky-bounded line; both paths leave `MISSILES` empty. `on_explode` returns `false` and clears `MISSILES` when MW2 mode is off.
+7. **HUD.** `hud::on_hit(HitFeedback { headshot, killed })` is a logging stub added to `hud.rs`; sheet 12 replaces its body. Explosion kills do not call it. The melee hit sound falls back to Doom `sfx_punch` until `audio::play` exists.
+8. **Test observation points.** `ballistics::{last_report, last_explosion, missile_count, missile_addresses}` and `trace_pellet` are public so the headless test can assert on pellets, feedback and explosions.
+9. **Dependency.** `room` gains a direct `weapon_iw4` dependency (`WeaponCombatFacts`, `location_damage_scale`, `fire_weapon_kind`); `tools/check-deps.sh` still passes.
+10. **T9.8** calls `mw2_explode` on a stationary `MT_ROCKET` at a known centre for the exact 0.5 R check, and separately fires a real rocket into a wall to prove the `A_Explode` hook path. **T9.9** checks the registry is empty after a rocket fired at the sky, and that `P_RemoveMobj` on a registered rocket forgets it without an explosion.
