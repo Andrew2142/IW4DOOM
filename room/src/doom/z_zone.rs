@@ -292,13 +292,19 @@ pub unsafe extern "C" fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) ->
     result
 }
 
+/// Upper bound on block-list walks: far above any real zone (a 128 MB zone of
+/// minimum-size blocks is still fewer), so hitting it means the list loops.
+const ZONE_WALK_SAFETY_CAP: usize = 4_000_000;
+
 /// `void Z_FreeTags(int lowtag, int hightag)` — free every live block
 /// whose tag falls in `[lowtag, hightag]`. Called during level shutdown
 /// to mass-release `PU_LEVEL` allocations.
 ///
-/// The Rust port adds a 2000-block walk cap and stderr trace
-/// (`[Z_FreeTags] ...`) not present in the C original; useful for
-/// catching list corruption when porting bugs creep in.
+/// Walks the whole block list like the C original. room added a 2000-block
+/// walk cap here, which left most level memory unfreed on any real map (so
+/// zone memory ran out after a few level loads); DOOMMW2 removed it. A
+/// safety cap far above any real block count remains to catch a corrupted,
+/// looping list, and the trace goes to `log::debug!` instead of stderr.
 ///
 /// # Safety
 /// - `mainzone` must be initialised. All blocks in the active list must
@@ -312,7 +318,11 @@ pub unsafe extern "C" fn Z_FreeTags(lowtag: c_int, hightag: c_int) {
     let mut freed = 0;
     let mut walked = 0;
 
-    while block != sentinel && walked < 2000 {
+    while block != sentinel {
+        if walked >= ZONE_WALK_SAFETY_CAP {
+            log::error!("Z_FreeTags: block list longer than {ZONE_WALK_SAFETY_CAP} blocks, possible loop");
+            break;
+        }
         walked += 1;
         let next = (*block).next;
 
@@ -324,7 +334,7 @@ pub unsafe extern "C" fn Z_FreeTags(lowtag: c_int, hightag: c_int) {
 
         block = next;
     }
-    eprintln!(
+    log::debug!(
         "[Z_FreeTags] lowtag={} hightag={} walked={} freed={}",
         lowtag, hightag, walked, freed
     );
@@ -461,9 +471,11 @@ pub unsafe extern "C" fn Z_CheckHeapQuiet() -> bool {
     let mut valid = true;
     let mut count = 0;
 
-    while block != sentinel && count < 2000 {
+    while block != sentinel && count < ZONE_WALK_SAFETY_CAP {
         let size = (*block).size;
-        if size <= 0 || size > 10_000_000 {
+        // A block can legitimately span almost the whole zone (one big free block with `-mb`),
+        // so the bound is the zone size, not room's old fixed 10 MB.
+        if size <= 0 || size > (*zone).size {
             eprintln!(
                 "Z_CheckHeapQuiet: block {:?} has invalid size {}",
                 block, size
@@ -512,7 +524,7 @@ pub unsafe extern "C" fn Z_CheckHeapQuiet() -> bool {
         block = (*block).next;
         count += 1;
     }
-    if count >= 2000 {
+    if count >= ZONE_WALK_SAFETY_CAP {
         eprintln!("Z_CheckHeapQuiet: too many blocks, possible loop!");
         valid = false;
     }
