@@ -58,12 +58,6 @@ use crate::doom::z_zone::{Z_Free, Z_Malloc};
 use std::ffi::{c_int, c_void};
 use std::ptr;
 
-extern "C" {
-    /// libc `stdout` stream, referenced for `fflush` during the
-    /// "Generating lookup tables.." progress prints.
-    static mut stdout: *mut libc::FILE;
-}
-
 use crate::doom::i_video::{SCREENHEIGHT, SCREENWIDTH};
 use crate::doom::z_zone::PU_STATIC;
 
@@ -393,10 +387,10 @@ unsafe extern "C" fn i_init_stretch_tables(palette: *mut u8) {
         return;
     }
     libc::printf(c"I_InitStretchTables: Generating lookup tables..".as_ptr());
-    libc::fflush(stdout);
+    libc::fflush(ptr::null_mut()); // fflush(NULL) flushes stdout too; `stdout` is a macro on MSVC
     stretch_tables[0] = generate_stretch_table(palette, 20);
     libc::printf(c"..".as_ptr());
-    libc::fflush(stdout);
+    libc::fflush(ptr::null_mut()); // fflush(NULL) flushes stdout too; `stdout` is a macro on MSVC
     stretch_tables[1] = generate_stretch_table(palette, 40);
     libc::puts(c"".as_ptr());
 }
@@ -413,7 +407,7 @@ unsafe extern "C" fn i_init_squash_table(palette: *mut u8) {
         return;
     }
     libc::printf(c"I_InitSquashTable: Generating lookup table..".as_ptr());
-    libc::fflush(stdout);
+    libc::fflush(ptr::null_mut()); // fflush(NULL) flushes stdout too; `stdout` is a macro on MSVC
     half_stretch_table = generate_stretch_table(palette, 50);
     libc::puts(c"".as_ptr());
 }
