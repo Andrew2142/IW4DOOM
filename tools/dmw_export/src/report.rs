@@ -14,6 +14,20 @@ pub struct SurfaceReport {
     pub no_material: u32,
 }
 
+/// One exported surface (for diagnosing how the viewmodel renders).
+#[derive(Debug, Clone, Serialize)]
+pub struct SurfaceDetail {
+    pub material: String,
+    pub model: String,
+    pub role: String,
+    pub alpha: String,
+    pub cull: String,
+    pub texture: Option<u16>,
+    pub triangles: u32,
+    /// Fraction of texels with alpha < 128 in the surface's texture (alpha-test holes).
+    pub texture_low_alpha: Option<f32>,
+}
+
 /// Clip counters.
 #[derive(Debug, Default, Clone, Serialize)]
 pub struct ClipReport {
@@ -50,6 +64,7 @@ pub struct WeaponReport {
     pub ok: bool,
     pub assembly: String,
     pub surfaces: SurfaceReport,
+    pub surface_detail: Vec<SurfaceDetail>,
     pub clips: ClipReport,
     pub textures: Vec<TextureReport>,
     pub sounds: SoundReport,
@@ -66,6 +81,7 @@ impl WeaponReport {
             ok: false,
             assembly: "none".to_owned(),
             surfaces: SurfaceReport::default(),
+            surface_detail: Vec::new(),
             clips: ClipReport::default(),
             textures: Vec::new(),
             sounds: SoundReport::default(),

@@ -117,6 +117,30 @@ pub fn export_weapon(
                 untextured: counts.untextured,
                 no_material: counts.no_material,
             };
+            let low_alpha = |t: Option<u16>| {
+                let tex = texture_set.textures.get(usize::from(t?))?;
+                let n = tex.image.pixels.len().max(1);
+                let low = tex.image.pixels.iter().filter(|p| p[3] < 128).count();
+                Some(low as f32 / n as f32)
+            };
+            report.surface_detail = mesh
+                .surfaces
+                .iter()
+                .map(|s| crate::report::SurfaceDetail {
+                    material: s.name.clone(),
+                    model: skeleton
+                        .models
+                        .get(usize::from(s.model))
+                        .map(|m| m.name.clone())
+                        .unwrap_or_default(),
+                    role: format!("{:?}", s.role),
+                    alpha: format!("{:?}", s.alpha),
+                    cull: format!("{:?}", s.cull),
+                    texture: s.texture,
+                    triangles: s.index_count / 3,
+                    texture_low_alpha: low_alpha(s.texture),
+                })
+                .collect();
             let exported = clips::export(registry, index, &p.xanims, assembly)
                 .map_err(|e| Box::new((e, report.clone())))?;
             report.clips = ClipReport {
