@@ -29,3 +29,6 @@ code. A failing comparison leaves `<name>.actual.png` and `<name>.diff.png` in
 | `freelook_down.png` | `room/tests/freelook_headless.rs` (T6.3) | same spot, pitch +20 (looking down): horizon 58 rows higher |
 | `freelook_zoom45.png` | `room/tests/freelook_headless.rs` (T6.5) | same spot, pitch 0, 45-degree horizontal FOV (door at the end of the hall magnified 2.4x, light unchanged) |
 | `freelook_sky_up.png` | `room/tests/freelook_headless.rs` (T6.6) | `SKY_VIEW`, pitch -37 (input limit plus 5 degrees of kick): sky above the building, no wrap seam |
+| `hud_crosshair_rest.png` | `room/tests/hud_headless.rs` (T12.2) | 320x168 view at `OPEN_ROOM`, fixture rifle at rest, hip: four 3-pixel crosshair arms around the view centre at the idle spread |
+| `hud_crosshair_bloom.png` | `room/tests/hud_headless.rs` (T12.2) | same spot after ten hip shots: arms pushed outward by the bloomed spread, world shifted by the view kick |
+| `hud_scope_fixture.png` | `room/tests/hud_headless.rs` (T12.5) | same spot, fixture sniper fully aimed: scope overlay (black outside an ellipse that is a circle at 4:3, dark ring, reticle lines), world visible in the clear centre |

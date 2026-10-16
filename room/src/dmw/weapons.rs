@@ -464,6 +464,8 @@ pub enum Action {
     Sound(SoundCue),
     /// Sheet 12 pickup message.
     Acquired(DmwWeaponId),
+    /// Sheet 12 weapon-name message: the sim started raising this weapon (not at level start).
+    Raised(DmwWeaponId),
     /// Sheet 10 animation tic (its notetrack sounds are played after it).
     ViewmodelTic {
         /// The sim's presentation snapshot after this tic.
@@ -750,7 +752,12 @@ pub unsafe fn think(
                 debug!(target: TARGET, "reload started (empty {empty})");
             }
             SimEvent::ReloadFinished => debug!(target: TARGET, "reload finished"),
-            SimEvent::RaiseStarted(id) => debug!(target: TARGET, "raise started: {}", id.0),
+            SimEvent::RaiseStarted(id) => {
+                debug!(target: TARGET, "raise started: {}", id.0);
+                if !first {
+                    plan.actions.push(Action::Raised(*id));
+                }
+            }
             SimEvent::DropFinished(id) => debug!(target: TARGET, "drop finished: {}", id.0),
         }
     }

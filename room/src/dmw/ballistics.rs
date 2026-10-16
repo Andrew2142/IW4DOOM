@@ -752,9 +752,17 @@ pub unsafe fn melee(player: *mut PlayerT, req: &MeleeRequest) {
             let mo = (*player).mo.cast::<Mobj>();
             P_DamageMobj(mobj, mo, mo, dmg);
             rep.health_after = (*mobj).health;
-            // Sheet 12's `audio::play` for the weapon's `melee_hit` alias replaces this
-            // fallback when it lands.
-            S_StartSound(mo.cast::<c_void>(), Sfx::Punch as c_int);
+            // The weapon's `melee_hit` alias through sheet 12's mixer; Doom's punch is the
+            // fallback when the weapon has none or the pack lacks the sound.
+            let melee_alias = pack()
+                .and_then(|p| p.try_facts(req.weapon).and_then(|f| f.sounds.melee_hit.clone()));
+            let cue = melee_alias.map(|alias| dmw_weapons::SoundCue { alias, local: true });
+            let played = cue
+                .as_ref()
+                .is_some_and(|c| crate::dmw::audio::play(c, (*player).mo.cast()));
+            if !played {
+                S_StartSound(mo.cast::<c_void>(), Sfx::Punch as c_int);
+            }
             let fb = HitFeedback {
                 headshot: false,
                 killed: rep.health_before > 0 && rep.health_after <= 0,
