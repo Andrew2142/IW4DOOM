@@ -34,15 +34,15 @@
 </p>
 <p align="center"><sub>Freedoom with the built-in placeholder gun. With your own MW2 install you get the real weapons.</sub></p>
 
-## Why
+## What is this?
 
-Doom's weapons are sprites that bob. MW2's are 3D models with a full state machine behind them: raise and drop times, magazine reloads, recoil that kicks the view, spread that blooms while you fire and tightens when you aim down sights, sway, sprinting, and damage that falls off with range.
+MW2's guns, in DOOM. The real ones.
 
-IW4DOOM puts that second system inside the first, and makes it look like it belongs there.
+IW4DOOM takes the weapons out of your copy of Modern Warfare 2 (models, animations, sounds) and hands them to the DOOM guy. Recoil, spread, reload times, aiming down sights: all of it runs on MW2's actual weapon code.
 
-- **The real rules, not an imitation.** The weapon logic is [iw4L](https://github.com/vladtrc/iw4L)'s Rust port of MW2's, fed with the numbers from your own MW2 install.
-- **The real models, the old look.** Viewmodels are rendered in 3D by a software rasterizer, then pushed through Doom's palette and light tables, so a gun in a dark corridor is as dark as the corridor.
-- **Doom stays Doom.** Maps, monsters, items and demos are untouched. Turn MW2 mode off (`-nomw2`) and it plays exactly like the engine it is built on.
+Then every gun gets crushed down to DOOM's 256 colours and DOOM's lighting, so everything blends together, without it feeling out of place.
+
+Bring your own MW2 and DOOM. One script builds the rest.
 
 ## Features
 
