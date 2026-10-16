@@ -19,3 +19,4 @@ session-*.md
 !/crates/dmw_weapons/tests/golden/*.json
 /games/*
 !/games/README.md
+iw4l-artifacts/
