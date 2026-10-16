@@ -351,6 +351,7 @@ fn fpv(c: &WeaponCombatFacts, zoom_fov: f32, overlay: (f32, f32)) -> FpvFacts {
         movement: movement_ofs(),
         overlay_reticle: c.overlay_reticle,
         reload_time_ms: c.reload_time_ms,
+        reload_show_rocket_time_ms: 0,
         scope_zoom: c.scope_zoom,
         ads_overlay_convention: "WeightIsFrac".to_owned(),
     }

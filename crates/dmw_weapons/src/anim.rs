@@ -109,8 +109,8 @@ pub struct ViewmodelAnimator {
     pub(crate) collapsed: Vec<usize>,
     notetracks: NotetrackSounds,
     reload_time_ms: i32,
-    /// `reload_show_rocket_time_ms` is not in the pack yet (sheet 10 §11); 0 shows the rocket as
-    /// soon as a reload has started.
+    /// `FpvFacts::reload_show_rocket_time_ms`; 0 (fixture, older packs) shows the rocket as soon
+    /// as a reload has started.
     reload_show_rocket_time_ms: i32,
     last_raw: Option<i32>,
     /// Time spent in the current reload, ms (the sim does not expose `weapon_time`).
@@ -160,7 +160,7 @@ impl ViewmodelAnimator {
             collapsed,
             notetracks: NotetrackSounds::new(&facts.sounds.notetracks),
             reload_time_ms: facts.fpv.reload_time_ms,
-            reload_show_rocket_time_ms: 0,
+            reload_show_rocket_time_ms: facts.fpv.reload_show_rocket_time_ms,
             last_raw: None,
             reload_elapsed_ms: 0,
             in_reload: false,
