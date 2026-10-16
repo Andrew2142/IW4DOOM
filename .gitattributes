@@ -1,0 +1,9 @@
+# Check text files out with LF on every platform. Git for Windows defaults to
+# core.autocrlf=true, which would turn the JSON/text goldens and parsed text into CRLF.
+* text=auto eol=lf
+# cmd.exe needs CRLF in batch files.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.wad binary
+*.sf2 binary

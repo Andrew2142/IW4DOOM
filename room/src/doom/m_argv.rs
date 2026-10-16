@@ -17,8 +17,11 @@ enum FILE {}
 
 /// Path separator used to extract the executable basename in
 /// `M_GetExecutableName`. Matches `DIR_SEPARATOR` from the C headers
-/// (always `'/'` in this port; the upstream code uses `'\\'` on Windows).
+/// (`'/'`; `'\\'` on Windows, as upstream).
+#[cfg(not(windows))]
 const DIR_SEPARATOR: c_char = b'/' as c_char;
+#[cfg(windows)]
+const DIR_SEPARATOR: c_char = b'\\' as c_char;
 
 /// Maximum number of arguments produced by a response-file expansion,
 /// matching `MAXARGVS` in `m_argv.c`.
@@ -36,6 +39,7 @@ pub static mut myargv: *mut *mut c_char = std::ptr::null_mut();
 
 extern "C" {
     /// libc `strcasecmp` — case-insensitive string compare.
+    #[cfg_attr(windows, link_name = "_stricmp")]
     fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     /// libc `fopen` — open a file by path with the given mode string.
     fn fopen(path: *const c_char, mode: *const c_char) -> *mut FILE;

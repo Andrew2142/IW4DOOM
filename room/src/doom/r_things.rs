@@ -117,6 +117,7 @@ struct column_t {
 extern "C" {
     /// Case-insensitive string comparison of at most `n` bytes.
     /// Used to match 4-character sprite names from WAD lump headers.
+    #[cfg_attr(windows, link_name = "_strnicmp")]
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
 }
 

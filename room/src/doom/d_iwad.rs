@@ -29,14 +29,25 @@ use crate::i_error;
 /// Corresponds to `MAX_IWAD_DIRS` in `d_iwad.c`.
 const MAX_IWAD_DIRS: usize = 128;
 
-/// Path component separator character (`/`).
+/// Path component separator character (`/`; `\\` on Windows, as in the C `_WIN32` build).
 ///
 /// Used when constructing full file paths from a directory and a filename.
+#[cfg(not(windows))]
 const DIR_SEPARATOR: c_char = b'/' as c_char;
+#[cfg(windows)]
+const DIR_SEPARATOR: c_char = b'\\' as c_char;
 
 /// Null-terminated string form of [`DIR_SEPARATOR`], suitable for passing to
 /// C string-joining functions.
+#[cfg(not(windows))]
 const DIR_SEPARATOR_S: &[u8] = b"/\0";
+#[cfg(windows)]
+const DIR_SEPARATOR_S: &[u8] = b"\\\0";
+
+/// True for a path separator: [`DIR_SEPARATOR`], and also `/` on Windows (which accepts both).
+fn is_dir_separator(c: c_char) -> bool {
+    c == DIR_SEPARATOR || (cfg!(windows) && c == b'/' as c_char)
+}
 
 extern "C" {
     /// C standard `printf`; used to emit diagnostic messages during IWAD
@@ -47,6 +58,7 @@ extern "C" {
     fn M_FileExists(filename: *mut c_char) -> c_int;
 
     /// Case-insensitive string comparison (POSIX).
+    #[cfg_attr(windows, link_name = "_stricmp")]
     fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     /// Locates the last occurrence of character `c` in string `s`.
     fn strrchr(s: *const c_char, c: c_int) -> *mut c_char;
@@ -56,6 +68,7 @@ extern "C" {
     /// terminator).
     fn strlen(s: *const c_char) -> usize;
     /// Duplicates a C string, returning a heap-allocated copy.
+    #[cfg_attr(windows, link_name = "_strdup")]
     fn strdup(s: *const c_char) -> *mut c_char;
     /// Frees a heap-allocated block.
     fn free(ptr: *mut c_void);
@@ -237,7 +250,7 @@ unsafe fn DirIsFile(path: *mut c_char, filename: *mut c_char) -> c_int {
     let filename_len = strlen(filename);
 
     if path_len > filename_len
-        && *path.add(path_len - filename_len - 1) == DIR_SEPARATOR
+        && is_dir_separator(*path.add(path_len - filename_len - 1))
         && strcasecmp(path.add(path_len - filename_len), filename) == 0
     {
         1
@@ -343,6 +356,13 @@ unsafe fn IdentifyIWADByName(mut name: *mut c_char, mask: c_int) -> c_int {
     let p = strrchr(name, DIR_SEPARATOR as c_int);
     if !p.is_null() {
         name = p.add(1);
+    }
+    #[cfg(windows)]
+    {
+        let p = strrchr(name, b'/' as c_int);
+        if !p.is_null() {
+            name = p.add(1);
+        }
     }
 
     let mut mission = d_mode::none;

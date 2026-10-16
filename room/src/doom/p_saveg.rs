@@ -2191,15 +2191,33 @@ mod tests {
         let old_stream = save_stream;
         let old_error = savegame_error;
         let old_len = savegamelength;
-        save_stream = libc::fmemopen(
-            data.as_mut_ptr() as *mut libc::c_void,
-            data.len(),
-            c"r".as_ptr() as *const libc::c_char,
-        );
+        #[cfg(not(windows))]
+        {
+            save_stream = libc::fmemopen(
+                data.as_mut_ptr() as *mut libc::c_void,
+                data.len(),
+                c"r".as_ptr() as *const libc::c_char,
+            );
+        }
+        // Windows has no fmemopen: read a copy of `data` from a unique temp file instead.
+        #[cfg(windows)]
+        let temp_path = {
+            static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let path = std::env::temp_dir()
+                .join(format!("room-p_saveg-test-{}-{n}.bin", std::process::id()));
+            std::fs::write(&path, &*data).unwrap();
+            let c_path = std::ffi::CString::new(path.to_str().unwrap()).unwrap();
+            save_stream = libc::fopen(c_path.as_ptr(), c"rb".as_ptr());
+            assert!(!save_stream.is_null(), "fopen {}", path.display());
+            path
+        };
         savegame_error = 0;
         savegamelength = 0;
         f();
         libc::fclose(save_stream);
+        #[cfg(windows)]
+        let _ = std::fs::remove_file(temp_path);
         save_stream = old_stream;
         savegame_error = old_error;
         savegamelength = old_len;

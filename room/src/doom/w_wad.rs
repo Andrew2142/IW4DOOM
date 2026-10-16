@@ -92,8 +92,10 @@ static mut lumphash: *mut *mut lumpinfo_t = ptr::null_mut();
 
 extern "C" {
     /// libc: case-insensitive compare of first `n` bytes.
+    #[cfg_attr(windows, link_name = "_strnicmp")]
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
     /// libc: case-insensitive string compare.
+    #[cfg_attr(windows, link_name = "_stricmp")]
     fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     /// libc: byte-equal compare of first `n` bytes.
     fn strncmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
