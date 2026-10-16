@@ -960,6 +960,9 @@ pub unsafe extern "C" fn ST_updateWidgets() {
             .as_mut_ptr()
             .add(weaponinfo[(*plyr).readyweapon as usize].ammo as usize);
     }
+    if crate::dmw::hooks::status_ammo(plyr).is_some() {
+        w_ready.num = &raw mut crate::dmw::hud::DMW_READY_AMMO;
+    }
     w_ready.data = (*plyr).readyweapon;
 
     for i in 0..3 {

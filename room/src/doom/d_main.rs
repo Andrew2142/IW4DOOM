@@ -685,6 +685,7 @@ pub extern "C" fn D_Display() {
             let dp = displayplayer as usize;
             if dp < MAXPLAYERS {
                 R_RenderPlayerView(std::ptr::addr_of_mut!(players[dp]));
+                crate::dmw::hooks::draw_view_overlays();
             }
             HU_Drawer();
         }

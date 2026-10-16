@@ -19,10 +19,11 @@
 //! [`PannedSource`] adapter turns a mono `rodio::Source` into a stereo stream
 //! with per-channel gains that may be updated mid-playback via [`PanState`].
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use dmw_format::SoundAsset;
 use rodio::{Player, Source};
 
 /// Decode a raw Doom DMX SFX lump into a sample rate and float PCM buffer.
@@ -162,6 +163,132 @@ impl<S: Source> Source for PannedSource<S> {
         self.inner.sample_rate()
     }
     /// Pass through the underlying source's total duration (if any).
+    fn total_duration(&self) -> Option<Duration> {
+        self.inner.total_duration()
+    }
+}
+
+/// Shared playback window of an [`ArcSamples`] source: the game thread reads how far the audio
+/// thread got and may shorten the source (DOOMMW2 keeps the first 20 ms of a replaced weapon
+/// sound, sheet 12 section 5.6).
+#[derive(Debug)]
+pub(crate) struct SampleCtl {
+    /// Interleaved samples consumed so far.
+    pub(crate) played: AtomicUsize,
+    /// The source ends once this many interleaved samples were consumed.
+    pub(crate) end: AtomicUsize,
+}
+
+impl SampleCtl {
+    /// A window that plays the whole buffer.
+    pub(crate) fn new() -> Self {
+        Self {
+            played: AtomicUsize::new(0),
+            end: AtomicUsize::new(usize::MAX),
+        }
+    }
+
+    /// Ends the source `samples` interleaved samples after its current position.
+    pub(crate) fn cut_after(&self, samples: usize) {
+        let at = self.played.load(Ordering::Relaxed).saturating_add(samples);
+        self.end.fetch_min(at, Ordering::Relaxed);
+    }
+}
+
+/// Zero-copy `rodio::Source` over a pack sound (sheet 12 section 5.6): yields the asset's
+/// interleaved samples unchanged; pitch and pan are applied by wrapping adapters.
+pub(crate) struct ArcSamples {
+    /// The decoded sound, shared with the pack cache.
+    asset: Arc<SoundAsset>,
+    /// Next interleaved sample.
+    pos: usize,
+    /// Shared window, see [`SampleCtl`].
+    ctl: Arc<SampleCtl>,
+}
+
+impl ArcSamples {
+    /// A source over `asset` controlled by `ctl`.
+    pub(crate) fn new(asset: Arc<SoundAsset>, ctl: Arc<SampleCtl>) -> Self {
+        Self { asset, pos: 0, ctl }
+    }
+}
+
+impl Iterator for ArcSamples {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<f32> {
+        if self.pos >= self.ctl.end.load(Ordering::Relaxed) {
+            return None;
+        }
+        let s = *self.asset.samples.get(self.pos)?;
+        self.pos += 1;
+        self.ctl.played.store(self.pos, Ordering::Relaxed);
+        Some(s)
+    }
+}
+
+impl Source for ArcSamples {
+    fn current_span_len(&self) -> Option<usize> {
+        None
+    }
+    fn channels(&self) -> rodio::ChannelCount {
+        std::num::NonZero::new(self.asset.channels.max(1)).unwrap_or(std::num::NonZero::<u16>::MIN)
+    }
+    fn sample_rate(&self) -> rodio::SampleRate {
+        std::num::NonZero::new(self.asset.rate.max(1)).unwrap_or(std::num::NonZero::<u32>::MIN)
+    }
+    fn total_duration(&self) -> Option<Duration> {
+        None
+    }
+}
+
+/// Pans a stereo source by scaling its left and right samples with the gains of a [`PanState`]
+/// (centre = 1.0 per side, so a centred stereo sound is as loud as the file).
+pub(crate) struct StereoGain<S> {
+    /// Interleaved stereo input.
+    inner: S,
+    /// Shared gain state.
+    pan: Arc<PanState>,
+    /// Next output sample is the right channel.
+    right: bool,
+}
+
+impl<S: Source> StereoGain<S> {
+    /// Wraps a two-channel `inner`.
+    pub(crate) fn new(inner: S, pan: Arc<PanState>) -> Self {
+        Self {
+            inner,
+            pan,
+            right: false,
+        }
+    }
+}
+
+impl<S: Source> Iterator for StereoGain<S> {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<f32> {
+        let s = self.inner.next()?;
+        let bits = if self.right {
+            self.pan.r_gain.load(Ordering::Relaxed)
+        } else {
+            self.pan.l_gain.load(Ordering::Relaxed)
+        };
+        self.right = !self.right;
+        Some(s * f32::from_bits(bits) * 2.0)
+    }
+}
+
+impl<S: Source> Source for StereoGain<S> {
+    fn current_span_len(&self) -> Option<usize> {
+        self.inner.current_span_len()
+    }
+    fn channels(&self) -> rodio::ChannelCount {
+        self.inner.channels()
+    }
+    fn sample_rate(&self) -> rodio::SampleRate {
+        self.inner.sample_rate()
+    }
     fn total_duration(&self) -> Option<Duration> {
         self.inner.total_duration()
     }
@@ -349,5 +476,68 @@ mod tests {
         let r2 = src.next().unwrap();
         assert!((l2 - 1.0_f32).abs() < 1e-4, "l2={l2}");
         assert!((r2 - 0.0_f32).abs() < 1e-4, "r2={r2}");
+    }
+
+    fn asset(channels: u16, samples: Vec<f32>) -> Arc<SoundAsset> {
+        Arc::new(SoundAsset {
+            rate: 1000,
+            channels,
+            samples,
+        })
+    }
+
+    #[test]
+    fn arc_samples_yields_the_source_buffer_unchanged() {
+        let data: Vec<f32> = (0..64).map(|i| (i as f32 * 0.37).sin()).collect();
+        let src = ArcSamples::new(asset(1, data.clone()), Arc::new(SampleCtl::new()));
+        assert_eq!(src.channels().get(), 1);
+        assert_eq!(src.sample_rate().get(), 1000);
+        assert_eq!(src.collect::<Vec<_>>(), data);
+        let stereo = ArcSamples::new(asset(2, data.clone()), Arc::new(SampleCtl::new()));
+        assert_eq!(stereo.channels().get(), 2);
+        assert_eq!(stereo.collect::<Vec<_>>(), data);
+    }
+
+    #[test]
+    fn arc_samples_shares_the_asset_without_copying() {
+        let a = asset(1, vec![0.5; 8]);
+        let src = ArcSamples::new(Arc::clone(&a), Arc::new(SampleCtl::new()));
+        assert_eq!(Arc::strong_count(&a), 2);
+        drop(src);
+        assert_eq!(Arc::strong_count(&a), 1);
+    }
+
+    #[test]
+    fn arc_samples_can_be_cut_short_after_a_window() {
+        let ctl = Arc::new(SampleCtl::new());
+        let mut src = ArcSamples::new(asset(1, vec![1.0; 100]), Arc::clone(&ctl));
+        for _ in 0..10 {
+            assert!(src.next().is_some());
+        }
+        ctl.cut_after(20);
+        assert_eq!(src.count(), 20, "20 more samples then the source ends");
+    }
+
+    #[test]
+    fn stereo_gain_pans_each_side_and_centre_is_unity() {
+        let pan = Arc::new(PanState::new(127, 127));
+        let src = ArcSamples::new(
+            asset(2, vec![0.5, 0.5, 0.25, 0.25]),
+            Arc::new(SampleCtl::new()),
+        );
+        let out: Vec<f32> = StereoGain::new(src, Arc::clone(&pan)).collect();
+        assert!(
+            out.iter()
+                .zip([0.5, 0.5, 0.25, 0.25])
+                .all(|(a, b)| (a - b).abs() < 1e-3),
+            "{out:?}"
+        );
+        let hard_left = Arc::new(PanState::new(127, 0));
+        let src = ArcSamples::new(asset(2, vec![0.5, 0.5]), Arc::new(SampleCtl::new()));
+        let out: Vec<f32> = StereoGain::new(src, hard_left).collect();
+        assert!(
+            (out[0] - 1.0).abs() < 1e-3 && out[1].abs() < 1e-3,
+            "{out:?}"
+        );
     }
 }

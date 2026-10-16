@@ -20,7 +20,7 @@
 //!   helpers the renderer calls directly (`fine_fov`, `focal_fixed`, `focal_y_fixed`,
 //!   `light_scale`, `sky_iscale`).
 //! - `DG_GetMouse` is a C-ABI platform callback added by sheet 05.
-//! - `audio::play` is added by sheet 12.
+//! - `audio::play` (sheet 12) is called from the action runner below and from sheet 09.
 
 use std::ffi::{c_char, c_int, CStr};
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -377,9 +377,13 @@ unsafe fn run_actions(player: *mut PlayerT, actions: Vec<Action>) {
                     super::ballistics::melee(player, &req);
                 }
             }
-            Action::Sound(cue) => super::audio::play(&cue, mo),
+            Action::Sound(cue) => {
+                super::audio::play(&cue, mo);
+            }
             Action::Acquired(id) => super::hud::on_weapon_acquired(id),
+            Action::Raised(id) => super::hud::on_weapon_raised(id),
             Action::ViewmodelTic { view, msec } => {
+                super::hud::on_tic();
                 for cue in super::viewmodel::on_tic(&view, msec) {
                     super::audio::play(&cue, mo);
                 }
@@ -501,11 +505,17 @@ pub(crate) fn draw_player_weapon() -> bool {
 }
 
 /// `D_Display`, right after `R_RenderPlayerView`: crosshair, hitmarker, scope overlay.
-pub(crate) fn draw_view_overlays() {}
+pub(crate) fn draw_view_overlays() {
+    guarded("draw_view_overlays", (), super::hud::draw_view_overlays);
+}
 
 /// `ST_Drawer` / `ST_updateWidgets`: magazine count for the AMMO widget, if MW2 owns it.
-pub(crate) unsafe fn status_ammo(_player: *mut PlayerT) -> Option<c_int> {
-    None
+pub(crate) unsafe fn status_ammo(player: *mut PlayerT) -> Option<c_int> {
+    if !mode::weapons_active() {
+        return None;
+    }
+    // SAFETY: forwarded unchanged; `status_ammo` never dereferences the pointer.
+    guarded("status_ammo", None, || unsafe { super::hud::status_ammo(player) })
 }
 
 /// `G_DoSaveGame`, right after `P_WriteSaveGameEOF`: append the DOOMMW2 extension block

@@ -18,9 +18,10 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 use rodio::buffer::SamplesBuffer;
-use rodio::{DeviceSinkBuilder, MixerDeviceSink, Player};
+use rodio::{DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 
 pub(crate) use sfx::{decode_doom_sfx, PannedSource};
+use sfx::{ArcSamples, PanState, SampleCtl, StereoGain};
 
 thread_local! {
     /// Thread-local home for the singleton [`AudioState`].
@@ -50,7 +51,45 @@ pub(crate) struct AudioState {
     channels: Box<[sfx::ChannelState; 8]>,
     /// Music decoder/player state (MUS conversion, MIDI sequencing, volume).
     pub(crate) music: music::MusicState,
+    /// DOOMMW2's own channel pool (sheet 12 section 5.6), separate from Doom's eight so MW2
+    /// gunfire never cuts monster sounds. Sized on first use from `[audio] channels`.
+    dmw_channels: Vec<DmwChannel>,
+    /// Start counter used to find the oldest DOOMMW2 channel.
+    dmw_seq: u64,
 }
+
+/// One DOOMMW2 mixer channel.
+struct DmwChannel {
+    /// The live player, `None` when idle.
+    player: Option<Player>,
+    /// Start order (larger = newer).
+    seq: u64,
+    /// Alias of the sound on the channel; a replay of the same alias shortens it.
+    alias: String,
+    /// Playback window of the live source.
+    ctl: Option<Arc<SampleCtl>>,
+    /// Interleaved samples per 20 ms of the live source.
+    cut_samples: usize,
+}
+
+impl DmwChannel {
+    fn idle() -> Self {
+        Self {
+            player: None,
+            seq: 0,
+            alias: String::new(),
+            ctl: None,
+            cut_samples: 0,
+        }
+    }
+
+    fn busy(&self) -> bool {
+        self.player.as_ref().is_some_and(|p| !p.empty())
+    }
+}
+
+/// Milliseconds of a replaced weapon sound that keep playing (iw4L `AUDIO.md`).
+const REPLACE_KEEP_MS: u64 = 20;
 
 /// Construction and channel-control entry points used by the engine's
 /// `S_sound` shims.
@@ -70,6 +109,8 @@ impl AudioState {
             mixer,
             channels,
             music: music::MusicState::new(),
+            dmw_channels: Vec::new(),
+            dmw_seq: 0,
         })
     }
 
@@ -139,5 +180,73 @@ impl AudioState {
             .player
             .as_ref()
             .is_some_and(|p| !p.empty())
+    }
+
+    /// Plays a DOOMMW2 sound on the MW2 channel pool (sheet 12 section 5.6).
+    ///
+    /// `vol` is Doom's 0-127 scale, `sep` the 0-255 separation (128 centred), `speed` the
+    /// playback rate multiplier, `pool` the pool size (`[audio] channels`). A free channel is
+    /// used, else the oldest is stolen. Playing `alias` again while it still plays on another
+    /// channel lets the old one run for 20 ms more. Returns `false` for sounds with more than
+    /// two channels.
+    pub(crate) fn start_dmw_sound(
+        &mut self,
+        asset: Arc<dmw_format::SoundAsset>,
+        alias: &str,
+        vol: i32,
+        sep: i32,
+        speed: f32,
+        pool: usize,
+    ) -> bool {
+        let pool = pool.max(1);
+        while self.dmw_channels.len() < pool {
+            self.dmw_channels.push(DmwChannel::idle());
+        }
+        self.dmw_channels.truncate(pool);
+
+        let (channels, rate) = (usize::from(asset.channels), asset.rate);
+        if !(1..=2).contains(&channels) {
+            return false;
+        }
+        // The previous sound of this alias keeps its first 20 ms.
+        for c in self
+            .dmw_channels
+            .iter()
+            .filter(|c| c.busy() && c.alias == alias)
+        {
+            if let Some(ctl) = &c.ctl {
+                ctl.cut_after(c.cut_samples);
+            }
+        }
+        let slot = self
+            .dmw_channels
+            .iter()
+            .position(|c| !c.busy())
+            .or_else(|| {
+                self.dmw_channels
+                    .iter()
+                    .enumerate()
+                    .min_by_key(|(_, c)| c.seq)
+                    .map(|(i, _)| i)
+            })
+            .unwrap_or(0);
+
+        let ctl = Arc::new(SampleCtl::new());
+        let pan = Arc::new(PanState::new(vol, sep));
+        let source = ArcSamples::new(Arc::clone(&asset), Arc::clone(&ctl)).speed(speed);
+        let player = Player::connect_new(&self.mixer);
+        if channels == 1 {
+            player.append(PannedSource::new(source, pan));
+        } else {
+            player.append(StereoGain::new(source, pan));
+        }
+        self.dmw_seq += 1;
+        let ch = &mut self.dmw_channels[slot];
+        ch.player = Some(player);
+        ch.seq = self.dmw_seq;
+        ch.alias = alias.to_owned();
+        ch.ctl = Some(ctl);
+        ch.cut_samples = (u64::from(rate) * REPLACE_KEEP_MS / 1000) as usize * channels;
+        true
     }
 }
