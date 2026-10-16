@@ -2477,6 +2477,7 @@ dependencies = [
  "dpvs_iw4",
  "frame",
  "master_protocol",
+ "serde",
  "serde_json",
  "weapon_iw4",
  "xmodel_runtime",
