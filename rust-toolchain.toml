@@ -1,3 +1,5 @@
+# Minimum rustc 1.97.1: the exporter's Bevy 0.20 (via iw4L) requires it; setup.sh checks.
+# The engine and the dmw_* crates build on 1.85+.
 [toolchain]
 channel = "stable"
 components = ["rustfmt", "clippy"]
