@@ -25,8 +25,10 @@ pub fn pcm_to_i16(bytes: &[u8], bits: u16, channels: u16) -> Result<Vec<i16>, St
     Ok(match bits {
         8 => bytes.iter().map(|&b| (i16::from(b) - 128) << 8).collect(),
         _ => bytes
-            .chunks_exact(2)
-            .map(|p| i16::from_le_bytes([p[0], p[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|p| i16::from_le_bytes(*p))
             .collect(),
     })
 }
@@ -54,7 +56,9 @@ pub fn parse_riff(bytes: &[u8]) -> Result<Option<RiffPcm>, String> {
         let body = at + 8;
         let end = body.checked_add(size).ok_or("chunk size overflow")?;
         // Some encoders write a data size past the end of the file; take what exists.
-        let chunk = bytes.get(body..end.min(bytes.len())).ok_or("truncated chunk")?;
+        let chunk = bytes
+            .get(body..end.min(bytes.len()))
+            .ok_or("truncated chunk")?;
         match &header[..4] {
             b"fmt " => fmt = Some(chunk),
             b"data" => data = Some(chunk),
@@ -136,8 +140,9 @@ pub fn export_alias(
                     None => Err(format!("streamed '{rel}' not found in the IWD archives")),
                     Some(Err(e)) => Err(format!("streamed '{rel}': {e}")),
                     Some(Ok(bytes)) => match parse_riff(&bytes) {
-                        Ok(Some(w)) => pcm_to_i16(&w.data, w.bits, w.channels)
-                            .map(|s| (w.rate, w.channels, s)),
+                        Ok(Some(w)) => {
+                            pcm_to_i16(&w.data, w.bits, w.channels).map(|s| (w.rate, w.channels, s))
+                        }
                         Ok(None) => Err(format!("streamed '{rel}' is not RIFF WAVE")),
                         Err(e) => Err(format!("streamed '{rel}': {e}")),
                     },
@@ -166,7 +171,13 @@ pub fn export_alias(
             }
         };
         let file = format!("sounds/{folder}/{v}.wav");
-        let mean = |a: f32, b: f32| if a.is_finite() && b.is_finite() { (a + b) * 0.5 } else { 1.0 };
+        let mean = |a: f32, b: f32| {
+            if a.is_finite() && b.is_finite() {
+                (a + b) * 0.5
+            } else {
+                1.0
+            }
+        };
         variants.push(SoundVariant {
             file: file.clone(),
             volume: mean(row.vol_min, row.vol_max),

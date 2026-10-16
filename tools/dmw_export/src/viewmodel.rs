@@ -106,7 +106,10 @@ pub fn skeleton(assembly: &FpvAssembly) -> Result<(Skeleton, Vec<String>), Strin
         let mut q = b.bind_rotation.to_array();
         let len = q.iter().map(|c| c * c).sum::<f32>().sqrt();
         if (len - 1.0).abs() > 1e-4 && len > 0.0 {
-            warnings.push(format!("bone {i} '{}' bind rotation renormalised (|q| = {len})", b.name));
+            warnings.push(format!(
+                "bone {i} '{}' bind rotation renormalised (|q| = {len})",
+                b.name
+            ));
             for c in &mut q {
                 *c /= len;
             }
@@ -145,7 +148,10 @@ pub fn skeleton(assembly: &FpvAssembly) -> Result<(Skeleton, Vec<String>), Strin
             models,
             duplicates,
             view_bone: to16(assembly.view_bone(), "view bone")?,
-            camera_bone: assembly.camera_bone().map(|b| to16(b, "camera bone")).transpose()?,
+            camera_bone: assembly
+                .camera_bone()
+                .map(|b| to16(b, "camera bone"))
+                .transpose()?,
             flash_bone: tags.flash,
             brass_bone: tags.brass,
             collapsed_bones: assembly
@@ -226,7 +232,9 @@ pub fn flatten(
             .get_at(part.model.order())
             .ok_or_else(|| format!("part {slot}: model missing from the FPV catalog"))?;
         let skel = &entry.skel;
-        if skel.packed_vertices.len() != skel.positions.len() || skel.vert_skin.len() != skel.positions.len() {
+        if skel.packed_vertices.len() != skel.positions.len()
+            || skel.vert_skin.len() != skel.positions.len()
+        {
             return Err(format!(
                 "model '{}': {} positions, {} packed vertices, {} skins",
                 skel.name,
@@ -300,21 +308,48 @@ pub fn flatten(
                 let global = |local: u8| -> Result<u16, String> {
                     let g = part.bone_base + usize::from(local);
                     if g >= bone_count {
-                        return Err(format!("model '{}' vertex {v}: bone {g} >= {bone_count}", skel.name));
+                        return Err(format!(
+                            "model '{}' vertex {v}: bone {g} >= {bone_count}",
+                            skel.name
+                        ));
                     }
                     u16::try_from(g).map_err(|_| "bone index > u16".to_owned())
                 };
                 let raw = RawSkin {
                     bones: [
                         global(vs.bones[0])?,
-                        if vs.has_extra_weight(1) { global(vs.bones[1])? } else { 0 },
-                        if vs.has_extra_weight(2) { global(vs.bones[2])? } else { 0 },
-                        if vs.has_extra_weight(3) { global(vs.bones[3])? } else { 0 },
+                        if vs.has_extra_weight(1) {
+                            global(vs.bones[1])?
+                        } else {
+                            0
+                        },
+                        if vs.has_extra_weight(2) {
+                            global(vs.bones[2])?
+                        } else {
+                            0
+                        },
+                        if vs.has_extra_weight(3) {
+                            global(vs.bones[3])?
+                        } else {
+                            0
+                        },
                     ],
                     extra_raw: [
-                        if vs.has_extra_weight(1) { vs.extra_weight(1) } else { 0 },
-                        if vs.has_extra_weight(2) { vs.extra_weight(2) } else { 0 },
-                        if vs.has_extra_weight(3) { vs.extra_weight(3) } else { 0 },
+                        if vs.has_extra_weight(1) {
+                            vs.extra_weight(1)
+                        } else {
+                            0
+                        },
+                        if vs.has_extra_weight(2) {
+                            vs.extra_weight(2)
+                        } else {
+                            0
+                        },
+                        if vs.has_extra_weight(3) {
+                            vs.extra_weight(3)
+                        } else {
+                            0
+                        },
                     ],
                     has_extra: [
                         vs.has_extra_weight(1),
@@ -335,7 +370,12 @@ pub fn flatten(
                 let local = (g as usize)
                     .checked_sub(first)
                     .filter(|l| *l < vcount)
-                    .ok_or_else(|| format!("model '{}' surface {s}: index {g} outside its vertices", skel.name))?;
+                    .ok_or_else(|| {
+                        format!(
+                            "model '{}' surface {s}: index {g} outside its vertices",
+                            skel.name
+                        )
+                    })?;
                 mesh.indices.push(base + local as u32);
             }
             let r = if scope_surf_is_lens(&material_name) {

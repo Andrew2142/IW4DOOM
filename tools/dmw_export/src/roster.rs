@@ -42,12 +42,21 @@ pub fn edit_distance(a: &str, b: &str) -> usize {
 
 /// Up to `limit` names closest to `wanted` by edit distance (ties broken alphabetically), compared
 /// case-insensitively.
-pub fn suggest<'a>(wanted: &str, names: impl IntoIterator<Item = &'a str>, limit: usize) -> Vec<String> {
+pub fn suggest<'a>(
+    wanted: &str,
+    names: impl IntoIterator<Item = &'a str>,
+    limit: usize,
+) -> Vec<String> {
     let wanted = wanted.to_ascii_lowercase();
     let mut scored: Vec<(usize, String)> = names
         .into_iter()
         .filter(|n| !n.is_empty())
-        .map(|n| (edit_distance(&wanted, &n.to_ascii_lowercase()), n.to_owned()))
+        .map(|n| {
+            (
+                edit_distance(&wanted, &n.to_ascii_lowercase()),
+                n.to_owned(),
+            )
+        })
         .collect();
     scored.sort();
     scored.dedup_by(|a, b| a.1 == b.1);

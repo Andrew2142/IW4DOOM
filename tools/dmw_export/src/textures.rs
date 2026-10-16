@@ -87,10 +87,7 @@ pub fn image_from_rgba(width: u32, height: u32, bytes: &[u8]) -> Option<RgbaImag
     Some(RgbaImage {
         width,
         height,
-        pixels: bytes
-            .chunks_exact(4)
-            .map(|p| [p[0], p[1], p[2], p[3]])
-            .collect(),
+        pixels: bytes.as_chunks::<4>().0.to_vec(),
     })
 }
 
@@ -112,19 +109,22 @@ pub struct TextureSet {
 }
 
 /// Decodes catalog image `image_index` to top-level RGBA8.
-pub fn decode_catalog_image(defs: &MaterialDefinitions, image_index: usize) -> Result<(String, RgbaImage), String> {
+pub fn decode_catalog_image(
+    defs: &MaterialDefinitions,
+    image_index: usize,
+) -> Result<(String, RgbaImage), String> {
     let source = defs
         .images
         .get(image_index)
         .ok_or_else(|| format!("image index {image_index} outside the catalog"))?;
     let name = source.name.as_str().to_owned();
-    let decoded = source
-        .decoded
-        .as_ref()
-        .ok_or_else(|| format!("image '{name}' was not decoded by the load (MaterialImageUnavailable)"))?;
+    let decoded = source.decoded.as_ref().ok_or_else(|| {
+        format!("image '{name}' was not decoded by the load (MaterialImageUnavailable)")
+    })?;
     let (w, h, pixels) = asset_material::decoded_image_top_level_rgba8(decoded)
         .map_err(|e| format!("image '{name}': {e}"))?;
-    let image = image_from_rgba(w, h, &pixels).ok_or_else(|| format!("image '{name}': bad size"))?;
+    let image =
+        image_from_rgba(w, h, &pixels).ok_or_else(|| format!("image '{name}': bad size"))?;
     Ok((name, image))
 }
 
@@ -174,7 +174,8 @@ impl TextureSet {
                 n
             }
             Err(e) => {
-                self.warnings.push(format!("material '{}': {e}", m.name.as_str()));
+                self.warnings
+                    .push(format!("material '{}': {e}", m.name.as_str()));
                 None
             }
         };

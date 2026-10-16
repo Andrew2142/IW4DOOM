@@ -46,16 +46,17 @@ fn overlay_image(loaded: &Loaded, index: u32, warnings: &mut Vec<String>) -> Opt
         .component_namespace_of(index, asset_game::WeaponComponent::OverlayImage)
         .unwrap_or(AssetNamespace::Iw4);
     let key = format!("{}:material/{image_name}", ns.as_str());
-    let decoded = match asset_material::decode_ui_image(&loaded.prepared.ui_images, &loaded.games.0, &key) {
-        Ok(Some(img)) => Some(img),
-        Ok(None) => asset_material::decode_ui_archive_image(&loaded.games.0, image_name)
-            .ok()
-            .flatten(),
-        Err(e) => {
-            warnings.push(format!("overlay '{key}': {e}"));
-            None
-        }
-    };
+    let decoded =
+        match asset_material::decode_ui_image(&loaded.prepared.ui_images, &loaded.games.0, &key) {
+            Ok(Some(img)) => Some(img),
+            Ok(None) => asset_material::decode_ui_archive_image(&loaded.games.0, image_name)
+                .ok()
+                .flatten(),
+            Err(e) => {
+                warnings.push(format!("overlay '{key}': {e}"));
+                None
+            }
+        };
     let Some((w, h, rgba)) = decoded else {
         warnings.push(format!("overlay image '{image_name}' not found"));
         return None;
@@ -64,14 +65,28 @@ fn overlay_image(loaded: &Loaded, index: u32, warnings: &mut Vec<String>) -> Opt
     Some(textures::downscale_to(image, textures::MAX_TEXTURE_EDGE))
 }
 
+/// A weapon export failure: the reason and the partial report.
+pub type WeaponFailure = Box<(String, WeaponReport)>;
+
 /// Exports weapon row `index` (requested as `name`).
-pub fn export_weapon(loaded: &Loaded, name: &str, index: u32, axis_hands: bool) -> Result<WeaponOutput, (String, WeaponReport)> {
+pub fn export_weapon(
+    loaded: &Loaded,
+    name: &str,
+    index: u32,
+    axis_hands: bool,
+) -> Result<WeaponOutput, WeaponFailure> {
     let p = &loaded.prepared;
     let registry = &p.weapons;
     let mut report = WeaponReport::new(name);
-    let extracted = match facts::extract(registry, index, p, &loaded.strings, loaded.sounds.as_ref().ok()) {
+    let extracted = match facts::extract(
+        registry,
+        index,
+        p,
+        &loaded.strings,
+        loaded.sounds.as_ref().ok(),
+    ) {
         Ok(e) => e,
-        Err(e) => return Err((e, report)),
+        Err(e) => return Err(Box::new((e, report))),
     };
     let mut facts = extracted.facts;
     report.name = facts.name.clone();
@@ -85,7 +100,8 @@ pub fn export_weapon(loaded: &Loaded, name: &str, index: u32, axis_hands: bool) 
         (true, Some(sides)) => {
             let (which, assembly) = viewmodel::choose_assembly(sides);
             report.assembly = which.to_owned();
-            let (skeleton, sk_warn) = viewmodel::skeleton(assembly).map_err(|e| (e, report.clone()))?;
+            let (skeleton, sk_warn) =
+                viewmodel::skeleton(assembly).map_err(|e| Box::new((e, report.clone())))?;
             report.warnings.extend(sk_warn);
             let (mesh, counts) = viewmodel::flatten(
                 assembly,
@@ -94,14 +110,15 @@ pub fn export_weapon(loaded: &Loaded, name: &str, index: u32, axis_hands: bool) 
                 &mut texture_set,
                 &mut report.warnings,
             )
-            .map_err(|e| (e, report.clone()))?;
+            .map_err(|e| Box::new((e, report.clone())))?;
             report.surfaces = SurfaceReport {
                 exported: counts.exported,
                 hidden: counts.hidden,
                 untextured: counts.untextured,
                 no_material: counts.no_material,
             };
-            let exported = clips::export(registry, index, &p.xanims, assembly).map_err(|e| (e, report.clone()))?;
+            let exported = clips::export(registry, index, &p.xanims, assembly)
+                .map_err(|e| Box::new((e, report.clone())))?;
             report.clips = ClipReport {
                 slots_bound: exported.slots_bound,
                 unique: u32::try_from(exported.set.clips.len()).unwrap_or(u32::MAX),
@@ -150,11 +167,11 @@ pub fn export_weapon(loaded: &Loaded, name: &str, index: u32, axis_hands: bool) 
     if let Some(vm) = &viewmodel_file {
         let count = u32::try_from(texture_set.textures.len()).unwrap_or(u32::MAX);
         if let Err(e) = dmw_format::validate::viewmodel(&facts.name, vm, count) {
-            return Err((format!("validation: {e}"), report));
+            return Err(Box::new((format!("validation: {e}"), report)));
         }
     }
     if let Err(e) = dmw_format::validate::weapon_facts(&facts.name, &facts) {
-        return Err((format!("validation: {e}"), report));
+        return Err(Box::new((format!("validation: {e}"), report)));
     }
     report.ok = true;
     Ok(WeaponOutput {
@@ -191,7 +208,10 @@ pub fn export_sounds(loaded: &Loaded, weapons: &[WeaponOutput]) -> PackSounds {
         }
     };
     let (iwd, _lines) = NamespaceSoundIwd::open(&NamespaceTrees::discover(&loaded.games));
-    let mut wanted: BTreeSet<AliasRef> = weapons.iter().flat_map(|w| w.aliases.iter().cloned()).collect();
+    let mut wanted: BTreeSet<AliasRef> = weapons
+        .iter()
+        .flat_map(|w| w.aliases.iter().cloned())
+        .collect();
     for extra in EXTRA_SOUNDS {
         // Stored under the name the engine asks for (room/src/dmw/audio.rs HITMARKER_ALIAS);
         // the bank lookup is case-insensitive.
@@ -210,7 +230,9 @@ pub fn export_sounds(loaded: &Loaded, weapons: &[WeaponOutput]) -> PackSounds {
             continue;
         }
         let folder = sounds::folder_for(&r.alias, &mut used);
-        if let Some(s) = sounds::export_alias(catalog, &iwd, r.ns, &r.alias, &folder, &mut out.skipped) {
+        if let Some(s) =
+            sounds::export_alias(catalog, &iwd, r.ns, &r.alias, &folder, &mut out.skipped)
+        {
             out.entries.push(s.entry);
             out.files.extend(s.files);
         }
@@ -235,7 +257,12 @@ pub fn attach_sound_reports(weapons: &mut [WeaponOutput], sounds: &PackSounds) {
 }
 
 /// Builds the manifest for `weapons` in roster order.
-pub fn manifest(loaded: &Loaded, weapons: &[WeaponOutput], sounds: &PackSounds, created_unix: u64) -> PackManifest {
+pub fn manifest(
+    loaded: &Loaded,
+    weapons: &[WeaponOutput],
+    sounds: &PackSounds,
+    created_unix: u64,
+) -> PackManifest {
     PackManifest {
         format_version: PACK_FORMAT_VERSION,
         generator: crate::generator(),
@@ -269,13 +296,23 @@ fn json<T: serde::Serialize>(v: &T) -> Result<Vec<u8>, String> {
 }
 
 /// Writes every pack file into `root` (the temporary directory of [`write::write_atomic`]).
-pub fn fill(root: &Path, manifest: &PackManifest, weapons: &[WeaponOutput], sounds: &PackSounds, report: &Report) -> Result<(), String> {
-    let w = |rel: &str, bytes: &[u8]| write::write_file(root, rel, bytes).map_err(|e| e.to_string());
+pub fn fill(
+    root: &Path,
+    manifest: &PackManifest,
+    weapons: &[WeaponOutput],
+    sounds: &PackSounds,
+    report: &Report,
+) -> Result<(), String> {
+    let w =
+        |rel: &str, bytes: &[u8]| write::write_file(root, rel, bytes).map_err(|e| e.to_string());
     w("manifest.json", &json(manifest)?)?;
     for (entry, out) in manifest.weapons.iter().zip(weapons) {
         w(&format!("{}/facts.json", entry.dir), &json(&out.facts)?)?;
         if let Some(vm) = &out.viewmodel {
-            w(&format!("{}/viewmodel.bin", entry.dir), &vm.to_bytes().map_err(|e| e.to_string())?)?;
+            w(
+                &format!("{}/viewmodel.bin", entry.dir),
+                &vm.to_bytes().map_err(|e| e.to_string())?,
+            )?;
         }
         for (n, t) in out.textures.iter().enumerate() {
             let png = dmw_format::texture::encode_png(&t.image).map_err(|e| e.to_string())?;
@@ -304,13 +341,24 @@ pub fn verify(root: &Path) -> Result<(), String> {
     }
     for s in &pack.manifest.sounds {
         for v in 0..s.variants.len() {
-            pack.load_sound_variant(&s.alias, v).map_err(|e| e.to_string())?;
+            pack.load_sound_variant(&s.alias, v)
+                .map_err(|e| e.to_string())?;
         }
     }
     Ok(())
 }
 
 /// Writes the pack atomically to `out`.
-pub fn write_pack(out: &Path, manifest: &PackManifest, weapons: &[WeaponOutput], sounds: &PackSounds, report: &Report) -> Result<(), WriteError> {
-    write::write_atomic(out, |root| fill(root, manifest, weapons, sounds, report), verify)
+pub fn write_pack(
+    out: &Path,
+    manifest: &PackManifest,
+    weapons: &[WeaponOutput],
+    sounds: &PackSounds,
+    report: &Report,
+) -> Result<(), WriteError> {
+    write::write_atomic(
+        out,
+        |root| fill(root, manifest, weapons, sounds, report),
+        verify,
+    )
 }

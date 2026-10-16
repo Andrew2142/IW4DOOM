@@ -13,7 +13,10 @@ use std::path::{Path, PathBuf};
 #[derive(Debug)]
 pub enum WriteError {
     /// Filesystem error at a path.
-    Io { path: PathBuf, error: std::io::Error },
+    Io {
+        path: PathBuf,
+        error: std::io::Error,
+    },
     /// The fill step failed (export error or injected failure).
     Fill(String),
     /// The written pack did not pass `Pack::open` and the lazy loads.

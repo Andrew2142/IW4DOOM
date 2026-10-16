@@ -5,8 +5,8 @@ use std::collections::BTreeMap;
 
 use asset_game::{FpvAssembly, WeaponAnimSlot, WeaponAnimations, WeaponRegistry};
 use dmw_format::anim::{
-    ClipData, ClipSet, FrameIndicesData, KeyedQuat, KeyedVec3, NotifyData, RotationData,
-    TrackData, TranslationData, WEAPON_ANIM_SLOTS,
+    ClipData, ClipSet, FrameIndicesData, KeyedQuat, KeyedVec3, NotifyData, RotationData, TrackData,
+    TranslationData, WEAPON_ANIM_SLOTS,
 };
 use xmodel_runtime::{AnimClip, FrameIndices, Rotation, Translation};
 
@@ -102,11 +102,11 @@ pub fn export(
     let mut by_order: BTreeMap<usize, Option<u16>> = BTreeMap::new();
     let mut dropped = Vec::new();
     let mut slots_bound = 0;
-    for k in 0..WEAPON_ANIM_SLOTS {
+    for (k, order) in orders.iter().enumerate() {
         let Some(slot) = WeaponAnimSlot::from_index(k) else {
             continue;
         };
-        let (Some(clip), Some(order)) = (anims.clip(slot), orders[k]) else {
+        let (Some(clip), Some(order)) = (anims.clip(slot), *order) else {
             continue;
         };
         let clip_index = match by_order.get(&order) {

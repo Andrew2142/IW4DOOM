@@ -56,10 +56,16 @@ fn list(loaded: &load::Loaded) {
         let display = dmw_export::facts::display_name(registry, i, &loaded.strings);
         let fpv = registry.fpv_assemblies_of(i, false).is_some();
         let key = registry.display_name_key_of(i).unwrap_or("-");
-        println!("{name}\t{display}\t{}\t{key}", if fpv { "fpv" } else { "no-fpv" });
+        println!(
+            "{name}\t{display}\t{}\t{key}",
+            if fpv { "fpv" } else { "no-fpv" }
+        );
         n += 1;
     }
-    println!("{n} published weapons; {} localized strings", loaded.strings.len());
+    println!(
+        "{n} published weapons; {} localized strings",
+        loaded.strings.len()
+    );
 }
 
 fn main() -> ExitCode {
@@ -70,7 +76,11 @@ fn main() -> ExitCode {
             return ExitCode::from(if e.use_stderr() { 1 } else { 0 });
         }
     };
-    println!("dmw_export {} (iw4L {})", env!("CARGO_PKG_VERSION"), dmw_export::iw4l_rev());
+    println!(
+        "dmw_export {} (iw4L {})",
+        env!("CARGO_PKG_VERSION"),
+        dmw_export::iw4l_rev()
+    );
     let started_at = Instant::now();
     let started_unix = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -131,13 +141,17 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        if outputs.iter().any(|o| o.facts.name == registry.script_name_of(index)) {
+        if outputs
+            .iter()
+            .any(|o| o.facts.name == registry.script_name_of(index))
+        {
             println!("note: {name} listed twice; exported once");
             continue;
         }
         match export::export_weapon(&loaded, name, index, args.axis_hands) {
             Ok(o) => outputs.push(o),
-            Err((e, report)) => {
+            Err(failure) => {
+                let (e, report) = *failure;
                 let line = format!("{name}: {e}");
                 println!("error: {line}");
                 errors.push(line);

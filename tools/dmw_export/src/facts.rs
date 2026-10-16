@@ -6,7 +6,9 @@ use std::collections::BTreeMap;
 
 use asset_audio::SoundCatalog;
 use asset_core::AssetNamespace;
-use asset_game::{WeaponAnimations, WeaponFpvFacts, WeaponKickFacts, WeaponRegistry, WeaponSoundSlot};
+use asset_game::{
+    WeaponAnimations, WeaponFpvFacts, WeaponKickFacts, WeaponRegistry, WeaponSoundSlot,
+};
 use dmw_format::{
     AnimTimes, FpvFacts, HudFacts, KickFacts, MovementScales, ProjectileFacts, SwayFacts,
     WeaponFacts, WeaponSounds,
@@ -124,16 +126,24 @@ fn anim_times(a: &WeaponAnimations) -> AnimTimes {
 
 /// English display name: the localize key looked up in `strings` (in the weapon's identity
 /// namespace, as iw4L `hud/src/weapon_name.rs`), else the `*_mp` asset name.
-pub fn display_name(registry: &WeaponRegistry, index: u32, strings: &asset_game::LocalizeCatalog) -> String {
+pub fn display_name(
+    registry: &WeaponRegistry,
+    index: u32,
+    strings: &asset_game::LocalizeCatalog,
+) -> String {
     let fallback = registry.script_name_of(index);
-    let Some(key) = registry.display_name_key_of(index).filter(|k| !k.is_empty()) else {
+    let Some(key) = registry
+        .display_name_key_of(index)
+        .filter(|k| !k.is_empty())
+    else {
         return fallback;
     };
     let text = match registry.identity_namespace_of(index) {
         Some(ns) => strings.text_in(ns, key).or_else(|| strings.text(key)),
         None => strings.text(key),
     };
-    text.filter(|t| !t.is_empty()).map_or(fallback, str::to_owned)
+    text.filter(|t| !t.is_empty())
+        .map_or(fallback, str::to_owned)
 }
 
 /// Resolves one authored alias against the sound bank. Returns the bank's alias name.
@@ -255,7 +265,10 @@ pub fn extract(
         .bind_published_row(index)
         .map_err(|e| format!("bind_published_row: {e:?}"))?;
     let combat = bound
-        .combat_facts(weapon_iw4::WeaponHostRules::default(), prepared.lochit_table)
+        .combat_facts(
+            weapon_iw4::WeaponHostRules::default(),
+            prepared.lochit_table,
+        )
         .map_err(|e| format!("combat facts refused: {e:?}"))?;
     let fpv_facts = bound.fpv_facts();
     let has_fpv = fpv_facts.is_some();
