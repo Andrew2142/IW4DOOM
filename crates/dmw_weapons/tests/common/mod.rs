@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Shared helpers for the sheet 07 integration tests. Everything runs on `Pack::fixture()`.
 // `Pack` is single-threaded (00 §7.1) yet `WeaponSim::new` takes `Arc<Pack>` (00 §7.2).
-#![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::arc_with_non_send_sync)]
+#![allow(
+    dead_code,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::arc_with_non_send_sync
+)]
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;

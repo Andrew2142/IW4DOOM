@@ -86,15 +86,21 @@ pub fn decode_png(bytes: &[u8], label: &str) -> Result<RgbaImage, PackError> {
     let data = &buf[..frame.buffer_size()];
     let pixels: Vec<[u8; 4]> = match (frame.color_type, frame.bit_depth) {
         (png::ColorType::Rgba, png::BitDepth::Eight) => data
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .map(|c| [c[0], c[1], c[2], c[3]])
             .collect(),
         (png::ColorType::Rgb, png::BitDepth::Eight) => data
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .map(|c| [c[0], c[1], c[2], 255])
             .collect(),
         (png::ColorType::GrayscaleAlpha, png::BitDepth::Eight) => data
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| [c[0], c[0], c[0], c[1]])
             .collect(),
         (png::ColorType::Grayscale, png::BitDepth::Eight) => {

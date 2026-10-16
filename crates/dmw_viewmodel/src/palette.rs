@@ -97,17 +97,15 @@ impl PaletteTables {
             )));
         }
         let mut pal = [[0u8; 3]; 256];
-        for (dst, src) in pal.iter_mut().zip(playpal.chunks_exact(3)) {
-            *dst = [src[0], src[1], src[2]];
+        for (dst, src) in pal.iter_mut().zip(playpal.as_chunks::<3>().0) {
+            *dst = *src;
         }
         let colormaps = colormap
-            .chunks_exact(256)
+            .as_chunks::<256>()
+            .0
+            .iter()
             .take(COLORMAP_COUNT)
-            .map(|c| {
-                let mut m = [0u8; 256];
-                m.copy_from_slice(c);
-                m
-            })
+            .copied()
             .collect();
 
         let started = Instant::now();

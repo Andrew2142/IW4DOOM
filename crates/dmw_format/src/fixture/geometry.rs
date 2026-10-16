@@ -376,7 +376,7 @@ mod tests {
         let mut checked = 0;
         for surf in &m.surfaces {
             let range = surf.index_start as usize..(surf.index_start + surf.index_count) as usize;
-            for tri in m.indices[range].chunks_exact(3) {
+            for tri in m.indices[range].as_chunks::<3>().0 {
                 let p = |i: u32| glam::Vec3::from(m.positions[i as usize]);
                 let n = (p(tri[1]) - p(tri[0])).cross(p(tri[2]) - p(tri[0]));
                 assert!(n.length() > 1e-6, "degenerate triangle in {}", surf.name);
