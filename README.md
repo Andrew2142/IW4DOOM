@@ -47,7 +47,7 @@ Bring your own MW2 and DOOM. One script builds the rest.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/viewmodel-fixture.png" alt="A 3D viewmodel lit by the sector light in Freedoom E1M1, with the status bar" /></td>
+    <td width="50%"><img src="docs/images/pistol.png" alt="A 3D viewmodel lit by the sector light in Freedoom E1M1, with the status bar" /></td>
     <td width="50%"><img src="docs/images/scope-fixture.png" alt="A sniper scope overlay with sway, over Freedoom" /></td>
   </tr>
   <tr>
