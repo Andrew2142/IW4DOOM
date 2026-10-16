@@ -157,7 +157,10 @@ pub fn ammo_prompt(
     if clip <= 0 && stock <= 0 {
         return Some("NO AMMO".to_owned());
     }
-    (clip <= (clip_size / 4).max(1) && stock > 0).then(|| format!("Press {reload_key} to reload"))
+    // Low means a quarter of the magazine or less, but never a full magazine: a one-round
+    // weapon (the RPG) only asks for a reload once it is empty.
+    let low = clip < clip_size && clip <= (clip_size / 4).max(1);
+    (low && stock > 0).then(|| format!("Press {reload_key} to reload"))
 }
 
 /// Rows between the reload prompt and the door prompt below it.
@@ -1155,5 +1158,25 @@ mod tests {
         assert_eq!(at(160 + 20, 84), 0, "horizontal reticle line");
         assert_eq!(at(160 + 10, 84 + 10), 5, "world shows inside the circle");
         assert_eq!(at(10, 190), 5, "rows below the view window are untouched");
+    }
+}
+
+#[cfg(test)]
+mod reload_prompt_tests {
+    use super::ammo_prompt;
+
+    #[test]
+    fn one_round_weapon_prompts_only_when_empty() {
+        assert_eq!(ammo_prompt(1, 5, 1, false, "R"), None, "loaded RPG: no prompt");
+        assert_eq!(ammo_prompt(0, 5, 1, false, "R").as_deref(), Some("Press R to reload"));
+        assert_eq!(ammo_prompt(0, 0, 1, false, "R").as_deref(), Some("NO AMMO"));
+    }
+
+    #[test]
+    fn full_magazine_never_prompts_and_low_one_does() {
+        assert_eq!(ammo_prompt(2, 5, 2, false, "R"), None, "full 2-round magazine");
+        assert_eq!(ammo_prompt(1, 5, 2, false, "R").as_deref(), Some("Press R to reload"));
+        assert_eq!(ammo_prompt(3, 60, 12, false, "R").as_deref(), Some("Press R to reload"));
+        assert_eq!(ammo_prompt(4, 60, 12, false, "R"), None);
     }
 }
