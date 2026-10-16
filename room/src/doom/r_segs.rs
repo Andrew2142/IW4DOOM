@@ -440,6 +440,21 @@ pub unsafe extern "C" fn R_RenderMaskedSegRange(ds: *mut drawseg_t, x1: c_int, x
 // R_RenderSegLoop
 // ---------------------------------------------------------------------------
 
+/// `finetangent[i]` with the original C out-of-range behaviour.
+///
+/// `R_RenderSegLoop` indexes `finetangent` (4096 entries) with an angle that can reach exactly
+/// 4096 at a 90° edge. In vanilla C the tables are laid out back to back, so `finetangent[4096..]`
+/// reads `finesine[0..]` instead of faulting. Rust would panic here, and because this runs inside
+/// an `extern "C"` call chain the panic aborts the game. Freelook and view kick make the edge
+/// angle reachable in normal play; reading `finesine` reproduces vanilla exactly.
+fn finetangent_c(i: usize) -> fixed_t {
+    if i < tables::finetangent.len() {
+        tables::finetangent[i]
+    } else {
+        tables::finesine[i - tables::finetangent.len()]
+    }
+}
+
 /// Core per-column drawing loop for one wall segment.
 ///
 /// Iterates from [`rw_x`] to [`rw_stopx`] (exclusive), performing the
@@ -505,8 +520,7 @@ unsafe fn R_RenderSegLoop() {
         if segtextured != 0 {
             let angle =
                 (rw_centerangle.wrapping_add(xtoviewangle[rw_x as usize])) >> ANGLETOFINESHIFT;
-            texturecolumn =
-                rw_offset - FixedMul(tables::finetangent[angle as usize & FINEMASK], rw_distance);
+            texturecolumn = rw_offset - FixedMul(finetangent_c(angle as usize & FINEMASK), rw_distance);
 
             // DOOMMW2 (sheet 06): zoom-neutral light scale (identity when not zoomed).
             let mut index = (crate::dmw::freelook::light_scale(rw_scale) as u32) >> LIGHTSCALESHIFT;
@@ -918,4 +932,17 @@ pub unsafe extern "C" fn R_StoreWallRange(start: c_int, stop: c_int) {
     }
 
     ds_p = ds_p.add(1);
+}
+
+#[cfg(test)]
+mod finetangent_c_tests {
+    use super::*;
+
+    #[test]
+    fn in_range_matches_table_and_edge_reads_finesine_like_c() {
+        assert_eq!(finetangent_c(0), tables::finetangent[0]);
+        assert_eq!(finetangent_c(4095), tables::finetangent[4095]);
+        assert_eq!(finetangent_c(4096), tables::finesine[0]);
+        assert_eq!(finetangent_c(8191), tables::finesine[4095]);
+    }
 }
