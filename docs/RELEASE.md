@@ -38,15 +38,31 @@ In a temporary directory with no `../room` and no `../iw4L` next to it:
     DMW_IWAD=wads/freedoom1.wad cargo test --workspace --exclude c2rust-intermediate -- --skip demo_playthrough
 
 - [ ] All of the above pass.
-- [ ] CI (`.github/workflows/ci.yml`) is green on the branch; run the manual exporter job once.
+- [ ] CI (`.github/workflows/ci.yml`) is green on the branch, including the `windows` job;
+      run the manual exporter job once (both the Linux and the Windows entry).
 
 ## 3. End-to-end on the maintainer's machine
 
 - [ ] `games/` holds the real files (MW2 multiplayer install, at least one IWAD).
-- [ ] `./setup.sh --reexport` passes all eight steps; the smoke test reports MW2 mode on.
-- [ ] `./play.sh --list` shows the IWADs; `./play.sh` plays: weapons raise, fire, reload, aim.
+- [ ] `./iw4doom.sh --reexport --setup-only` passes steps 1-7; the smoke test reports MW2 mode on.
+- [ ] `./iw4doom.sh --list` shows the IWADs; `./iw4doom.sh` plays: weapons raise, fire, reload,
+      aim. A second `./iw4doom.sh` starts the game within seconds (no smoke test).
 - [ ] `DMW_IWAD=wads/freedoom1.wad cargo test --workspace --exclude c2rust-intermediate` passes,
       including `demo_playthrough` (needs `games/doom/doom1.wad`, the shareware IWAD).
+
+## 3b. Windows, by hand (T15.5, the owner on a real Windows 10/11 PC with their own files)
+
+CI proves the build and the tests on Windows; it cannot play. Before announcing Windows support:
+
+- [ ] Fresh clone; `games\iw4` as a junction (`mklink /J`) to the Steam MW2 folder, an IWAD in
+      `games\doom\`.
+- [ ] Double-click `iw4doom.bat` on a machine without Rust or Build Tools: it offers the winget
+      installs, and after yes finishes steps 1-8 and the game starts. Answering no prints the
+      rustup-init.exe / Build Tools instructions and exits.
+- [ ] `iw4doom.log` has the whole run; a second double-click starts the game within seconds.
+- [ ] In the game: the mouse is captured (the log shows `mouse captured (confined)` or
+      `(locked)`), sound and music play, the real MW2 guns raise, fire, reload and aim.
+- [ ] Save and load a game; quit and start again with `iw4doom.bat --iwad <other>`.
 
 ## 4. Documents
 

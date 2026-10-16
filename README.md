@@ -11,7 +11,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Rust-stable-b7410e?style=flat-square&logo=rust&logoColor=white" alt="Rust stable" />
-  <img src="https://img.shields.io/badge/Linux-only-fcc624?style=flat-square&logo=linux&logoColor=black" alt="Linux only" />
+  <img src="https://img.shields.io/badge/Linux-supported-fcc624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=flat-square" alt="Windows 10 and 11" />
   <img src="https://img.shields.io/badge/license-GPL--3.0-3d7dd8?style=flat-square" alt="GPL-3.0-or-later" />
   <img src="https://img.shields.io/badge/status-alpha-f5b54a?style=flat-square" alt="Alpha" />
   <img src="https://img.shields.io/badge/game%20files-bring%20your%20own-8a8a8a?style=flat-square" alt="Bring your own game files" />
@@ -67,32 +68,75 @@ Bring your own MW2 and DOOM. One script builds the rest.
 
 ## Quick start
 
-You need Linux, about 4 GB of free disk space for the build, your own copy of **Call of Duty: Modern Warfare 2 (2009)** with its multiplayer component installed, and a **Doom IWAD** (see [Which Doom version](#which-doom-version)).
+You need Linux or Windows 10/11 (64-bit), about 4 GB of free disk space for the build, your own copy of **Call of Duty: Modern Warfare 2 (2009)** with its multiplayer component installed, and a **Doom IWAD** (see [Which Doom version](#which-doom-version)).
 
-```bash
-git clone https://github.com/Andrew2142/IW4DOOM.git
-cd IW4DOOM
-```
+1. Get the code:
 
-Put your game files in `games/` (symlinks are fine, so nothing large is copied):
+   ```bash
+   git clone https://github.com/Andrew2142/IW4DOOM.git
+   cd IW4DOOM
+   ```
 
-```text
-games/
-  iw4/            your MW2 multiplayer install (the folder with iw4mp.exe, main/ and zone/)
-  doom/           one or more Doom IWADs: doom2.wad, doom.wad, doom1.wad, freedoom1.wad, ...
-  soundfont.sf2   optional: a General MIDI soundfont for music
-```
+2. Put your game files in `games/` (links are fine, so nothing large is copied):
+
+   ```text
+   games/
+     iw4/            your MW2 multiplayer install (the folder with iw4mp.exe, main/ and zone/)
+     doom/           one or more Doom IWADs: doom2.wad, doom.wad, doom1.wad, freedoom1.wad, ...
+     soundfont.sf2   optional: a General MIDI soundfont for music
+   ```
+
+3. Run IW4DOOM:
+
+   - **Linux:** `./iw4doom.sh`
+   - **Windows:** double-click `iw4doom.bat` (or run `iw4doom.bat` in a terminal)
+
+That is the whole setup, and the same command every time you play. The first run checks your files and your machine, builds the exporter, turns your MW2 install into a weapon pack in `packs/mw2`, builds the game, runs a short headless smoke test and starts the game. It takes 15-20 minutes, mostly compiling. Later runs see that everything is up to date and start the game within seconds.
+
+If Rust or a build tool is missing, it says exactly what and offers to install it; nothing is installed unless you answer yes. Everything it ran is in `iw4doom.log`.
+
+Options go before or after the game's own arguments:
+
+| Option | What it does |
+| --- | --- |
+| `--list` | Show the IWADs found in `games/doom/` |
+| `--iwad doom1.wad` | Play another IWAD than the preferred one |
+| `--reexport` | Export the MW2 pack again |
+| `--setup-only` | Do everything except starting the game |
+| `--games DIR` | Use another folder than `games/` |
+| anything else | Goes to the game, for example `-warp 1 1 -skill 4` |
+
+### Linux
 
 ```bash
 ln -s "$HOME/.steam/steam/steamapps/common/Call of Duty Modern Warfare 2" games/iw4
 mkdir -p games/doom && cp /path/to/DOOM2.WAD games/doom/
-./setup.sh
-./play.sh
+./iw4doom.sh
 ```
 
-`setup.sh` checks your files and your machine, builds the exporter, turns your MW2 install into a weapon pack in `packs/mw2`, builds the game, runs a short headless smoke test and writes `play.sh`. The first run takes 15-20 minutes, mostly compiling; later runs take seconds. If something is missing it tells you exactly what, including the one install command to run (it never uses `sudo` itself). Full output goes to `setup.log`.
+Missing system libraries (a C compiler, `pkg-config`, ALSA, Wayland, xkbcommon, udev) are installed with your package manager after you confirm; `sudo` asks for your password. Missing Rust is installed with the official rustup installer into your home folder, also only after you confirm.
 
-`./play.sh --list` shows the IWADs it found, `./play.sh --iwad doom1.wad` picks one, and any other arguments go to the game (`./play.sh -warp 1 1 -skill 4`).
+### Windows
+
+Steam installs MW2 to `C:\Program Files (x86)\Steam\steamapps\common\Call of Duty Modern Warfare 2` (or the same path under another Steam library). Link it into `games\` with a **directory junction**, which needs no admin rights. In a Command Prompt in the IW4DOOM folder:
+
+```bat
+mklink /J games\iw4 "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty Modern Warfare 2"
+mkdir games\doom
+copy "C:\path\to\DOOM2.WAD" games\doom\
+iw4doom.bat
+```
+
+(In PowerShell, write `cmd /c mklink /J ...`.) A junction is the best choice. A symbolic link (`mklink /D`) only works with Developer Mode on or as administrator, and copying the folder works but duplicates the whole install. If `games\iw4` is missing, `iw4doom.bat` looks up your Steam libraries and prints the exact `mklink` line for your MW2 folder, and lists the DOOM IWADs it finds in Steam's DOOM folders.
+
+The first run needs two things that Windows does not ship with:
+
+- **Rust**, from [rustup.rs](https://rustup.rs) (`rustup-init.exe`, accept the defaults).
+- **Build Tools for Visual Studio** with the **Desktop development with C++** workload, from [visualstudio.microsoft.com/visual-cpp-build-tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/). Rust uses its linker.
+
+When `winget` is available, `iw4doom.bat` offers to install both for you (`Rustlang.Rustup` and `Microsoft.VisualStudio.2022.BuildTools`), after you answer yes; Windows then asks for permission for the Build Tools. Otherwise it prints the links above.
+
+`iw4doom.bat` starts PowerShell with `-ExecutionPolicy Bypass` for that one run, so you do not need to change your execution policy. To run the script directly, use `powershell -ExecutionPolicy Bypass -File iw4doom.ps1`.
 
 ## Controls
 
@@ -110,17 +154,17 @@ mkdir -p games/doom && cp /path/to/DOOM2.WAD games/doom/
 | Weapons | 1-7, mouse wheel |
 | Turn | Left / right arrow |
 
-Rebind them in `iw4doom.toml` (copy `iw4doom.example.toml`, which lists every setting at its default). The game reads `./iw4doom.toml`, then `~/.config/iw4doom/iw4doom.toml`.
+Rebind them in `iw4doom.toml` (copy `iw4doom.example.toml`, which lists every setting at its default). The game reads `./iw4doom.toml`, then `~/.config/iw4doom/iw4doom.toml` on Linux or `%APPDATA%\iw4doom\iw4doom.toml` on Windows.
 
 ## Which Doom version
 
 Any Doom IWAD works. IW4DOOM uses the classic WAD files, not a newer engine.
 
-- **DOOM and DOOM II on Steam.** The Steam versions include the classic `DOOM.WAD` and `DOOM2.WAD`; find them in the game's install folder and copy or symlink them into `games/doom/`. Final Doom's `PLUTONIA.WAD` and `TNT.WAD` work too.
+- **DOOM and DOOM II on Steam.** The Steam versions include the classic `DOOM.WAD` and `DOOM2.WAD`; find them in the game's install folder (on Windows under `C:\Program Files (x86)\Steam\steamapps\common\`, for example `Ultimate Doom`) and copy or link them into `games/doom/`. Final Doom's `PLUTONIA.WAD` and `TNT.WAD` work too.
 - **Shareware Doom (free).** Episode 1 only. On Debian or Ubuntu: `sudo apt install doom-wad-shareware`, then `ln -s /usr/share/games/doom/doom1.wad games/doom/`.
 - **Freedoom (free and open).** A complete replacement IWAD: download `freedoom1.wad` / `freedoom2.wad` from [freedoom.github.io](https://freedoom.github.io) into `games/doom/`.
 
-With several IWADs, `play.sh` prefers `doom2.wad`, then `doom.wad`, `plutonia.wad`, `tnt.wad`, `freedoom2.wad`, `freedoom1.wad`, `doom1.wad`.
+With several IWADs, IW4DOOM prefers `doom2.wad`, then `doom.wad`, `plutonia.wad`, `tnt.wad`, `freedoom2.wad`, `freedoom1.wad`, `doom1.wad`.
 
 ## Weapons
 
@@ -173,7 +217,7 @@ No. It is single-player Doom with MW2 weapons. Nothing connects to any server.
 <details>
 <summary><strong>Does it run on Windows or macOS?</strong></summary>
 
-Linux only for now. The engine itself is portable Rust, but `setup.sh` and the build have only been tested on Linux.
+Linux and Windows 10/11 (64-bit): `./iw4doom.sh` on Linux, `iw4doom.bat` on Windows. Windows support is new, so please open an issue when something breaks there. macOS is not supported.
 </details>
 
 <details>
@@ -185,7 +229,20 @@ On purpose. The guns are drawn at Doom's resolution with Doom's 256 colours and 
 <details>
 <summary><strong>Setup failed. Where do I look?</strong></summary>
 
-`setup.sh` prints what failed and what to do about it; everything it ran is in `setup.log`. If the export fails, `packs/mw2/report.json` (after a successful export) and `setup.log` list what was skipped and why. Run `./setup.sh --reexport` to export again.
+`iw4doom.sh` / `iw4doom.bat` print what failed and what to do about it; everything they ran is in `iw4doom.log`. If the export fails, `packs/mw2/report.json` (after a successful export) and `iw4doom.log` list what was skipped and why. Add `--reexport` to export again.
+</details>
+
+<details>
+<summary><strong>Windows: something went wrong. What now?</strong></summary>
+
+- **The window closed too fast to read.** Run `iw4doom.bat` from a Command Prompt instead of double-clicking, or read `iw4doom.log`. On failure the window waits for a key press.
+- **"Running scripts is disabled on this system".** Start the game with `iw4doom.bat`, which bypasses the execution policy for that run only, or use `powershell -ExecutionPolicy Bypass -File iw4doom.ps1`.
+- **`games\iw4` has no zone folder.** It is probably a symbolic link made without Developer Mode. Delete it and make a junction with `mklink /J` (see [Windows](#windows)).
+- **`link.exe` not found, or the build fails right away.** The Visual Studio C++ build tools are missing or incomplete. Install Build Tools for Visual Studio with the "Desktop development with C++" workload, then open a new terminal.
+- **Rust was just installed but is not found.** Open a new terminal (or log out and in) so the new PATH applies, then run `iw4doom.bat` again.
+- **The antivirus removed `iw4doom.exe` or the exporter.** Freshly compiled programs are sometimes flagged. Restore the file and add an exclusion for the IW4DOOM folder, then run `iw4doom.bat` again.
+- **The build fails with "path too long" errors.** Clone IW4DOOM to a short path such as `C:\Games\IW4DOOM`.
+- **The mouse does not turn the view.** Click into the game window once; it captures the mouse while you play and releases it in the menu.
 </details>
 
 ## Legal
