@@ -766,3 +766,10 @@ Sections above that say otherwise are superseded by this revision (they are not 
 - Public name **IW4DOOM** (repository `IW4DOOM`). The binary is `iw4doom` (was `doommw2`); the window title is `IW4DOOM` (`IW4DOOM - <game description>` once the IWAD is known). Internal names (crates `room`, `dmw_*`, module `dmw`, log targets `dmw::*`, the `DOOMMW2` name in specs and code comments) are unchanged.
 - §4.3/§4.4: the config file is `iw4doom.toml` (`./iw4doom.toml`, then `$XDG_CONFIG_HOME/iw4doom/iw4doom.toml`); `doommw2.toml` in the old places is still read after the new name. The template is `iw4doom.example.toml`. `-mw2config` is unchanged.
 - Music: `-sf2 <path>`, else `games/soundfont.sf2`, else no music (one `info` line).
+
+### Revision 12 — 2026-10-16 (sheet 16 hook points; sheet 17 §11)
+
+- §7.5 gains the sheet 16 hook points: `TryRunTics` (`hooks::uncapped_return_early`, input pumped every frame when it returns early), `P_Ticker` after the pause checks (`hooks::on_ticker_start`), `D_Display` around `R_RenderPlayerView` (`hooks::begin_frame` / `hooks::end_frame`), and the read-only accessors `d_loop::maketic()` and `g_game::pending_mousex()`. `[render] uncapped` (default `true`) and `[render] max_fps` (default 0) join §9.
+- §4.1: new workspace crate `crates/dmw_mapgen` (sheet 17, MW2-free map generator); `packs/maps/` (gitignored) holds `<zone>.grid` and generated PWADs `<zone>/<iwad-stem>.wad`.
+- Engine edits outside §7.5 allowed for sheet 17: the shareware `-file` exception for PWADs carrying a `DMWMAP` lump (`d_main.rs`), and raised renderer static limits (`MAXVISPLANES 1024`, `MAXDRAWSEGS 2048`, `MAXOPENINGS SCREENWIDTH*256`, `MAXVISSPRITES 1024`, `MAXSEGS 128`).
+- Launchers: `--map NAME` / `-Map NAME` (sheet 17 §5.10).
