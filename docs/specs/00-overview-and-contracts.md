@@ -746,3 +746,7 @@ pub fn quantize(image: &RgbaImage, pal: &PaletteTables, dither: Dither, alpha: A
 ### Revision 8 — 2026-10-16 (from sheet 11 §11 item 3)
 
 - §7.3: `Rasterizer::draw(&mut self, target: &mut DrawTarget<'_>, model: &PreparedViewmodel, params: &mut ViewmodelDrawParams<'_>) -> DrawStats` — `params` is `&mut` so `LightParams::Fuzz { fuzzpos }` can be written back. The interim `draw_mut` added by the crate half is folded into `draw`; `last_fuzzpos()` may stay as a convenience. The engine half (11 §6) implements against this signature.
+
+### Revision 9 — 2026-10-16 (from sheet 05 §11 / sheet 08 §11)
+
+- D18, §4.4, §8.3: the engine's `default.cfg` load/save are no-ops (inherited from room), so the ten DOOMMW2 bindings (`key_dmw_*`, `mouseb_dmw_*`, `mouse_dmw_*`) live in `doommw2.toml` `[input]` (`InputCfg`, `KeyBind`). `on_engine_init` copies them into the `m_controls` statics. Doom's own vanilla bindings are unchanged. Applied by sheet 08.
