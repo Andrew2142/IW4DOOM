@@ -91,3 +91,26 @@ fn main() {
     println!("  validcount:   {}", offset_of!(line_t, validcount));
     println!("  specialdata:  {}", offset_of!(line_t, specialdata));
 }
+
+// The engine library calls these platform callbacks; this binary never starts the engine, but
+// MSVC's linker resolves every reference before dropping unused code, so it needs definitions.
+#[no_mangle]
+pub extern "C" fn DG_Init() {}
+#[no_mangle]
+pub extern "C" fn DG_DrawFrame() {}
+#[no_mangle]
+pub extern "C" fn DG_SleepMs(_ms: u32) {}
+#[no_mangle]
+pub extern "C" fn DG_GetTicksMs() -> u32 {
+    0
+}
+#[no_mangle]
+pub extern "C" fn DG_GetKey(_pressed: *mut i32, _doom_key: *mut u8) -> i32 {
+    0
+}
+#[no_mangle]
+pub extern "C" fn DG_GetMouse(_dx: *mut i32, _dy: *mut i32, _buttons: *mut u8) -> i32 {
+    0
+}
+#[no_mangle]
+pub extern "C" fn DG_SetWindowTitle(_title: *const std::ffi::c_char) {}
