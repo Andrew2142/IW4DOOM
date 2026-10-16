@@ -14,8 +14,15 @@ const _: () = assert!(std::mem::size_of::<c_int>() == 4);
 const _: () = assert!(std::mem::size_of::<c_uint>() == 4);
 const _: () = assert!(std::mem::size_of::<c_short>() == 2);
 const _: () = assert!(std::mem::size_of::<c_ushort>() == 2);
+// `long` is 64-bit on Linux x86_64 (LP64) and 32-bit on Windows x64 (LLP64).
+#[cfg(not(windows))]
 const _: () = assert!(std::mem::size_of::<c_long>() == 8); // Linux x86_64
+#[cfg(not(windows))]
 const _: () = assert!(std::mem::size_of::<c_ulong>() == 8);
+#[cfg(windows)]
+const _: () = assert!(std::mem::size_of::<c_long>() == 4); // Windows x64
+#[cfg(windows)]
+const _: () = assert!(std::mem::size_of::<c_ulong>() == 4);
 const _: () = assert!(std::mem::size_of::<*mut c_void>() == 8); // pointer size
 
 /// Serialise tests that mutate C global state.

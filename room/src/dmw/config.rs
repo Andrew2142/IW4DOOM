@@ -543,14 +543,14 @@ impl DmwConfig {
     /// With `explicit` (`-mw2config <file>`) only that file is tried. Otherwise the search is
     /// `./iw4doom.toml`, `./doommw2.toml` (the earlier name), then
     /// `$XDG_CONFIG_HOME/iw4doom/iw4doom.toml` and `$XDG_CONFIG_HOME/doommw2/doommw2.toml`, with
-    /// `~/.config` when `XDG_CONFIG_HOME` is unset. Returns the config and the file that was found
-    /// (even when it failed to parse and defaults were used).
+    /// `~/.config` when `XDG_CONFIG_HOME` is unset. On Windows `%APPDATA%` takes the place of
+    /// `XDG_CONFIG_HOME` when that is unset (`%APPDATA%\iw4doom\iw4doom.toml`). Returns the
+    /// config and the file that was found (even when it failed to parse and defaults were used).
     pub fn load(explicit: Option<&Path>) -> (DmwConfig, Option<PathBuf>) {
-        let candidates = candidate_paths(
-            explicit,
-            std::env::var_os("XDG_CONFIG_HOME"),
-            std::env::var_os("HOME"),
-        );
+        let config_home = std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty());
+        #[cfg(windows)]
+        let config_home = config_home.or_else(|| std::env::var_os("APPDATA"));
+        let candidates = candidate_paths(explicit, config_home, std::env::var_os("HOME"));
         Self::load_from(&candidates)
     }
 

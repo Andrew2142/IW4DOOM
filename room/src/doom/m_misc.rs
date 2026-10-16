@@ -22,11 +22,17 @@ use crate::types::Boolean;
 /// `extern "C"` shims below; the contents are never accessed from Rust.
 pub enum FILE {}
 
-/// Unix directory separator character (C: `DIR_SEPARATOR = '/'`).
+/// Directory separator character (C: `DIR_SEPARATOR`, `'/'`; `'\\'` on Windows).
+#[cfg(not(windows))]
 const DIR_SEPARATOR: c_char = b'/' as c_char;
-/// Unix directory separator string (C: `DIR_SEPARATOR_S = "/"`), with a
+#[cfg(windows)]
+const DIR_SEPARATOR: c_char = b'\\' as c_char;
+/// Directory separator string (C: `DIR_SEPARATOR_S`), with a
 /// trailing NUL so the buffer can be passed to C string APIs.
+#[cfg(not(windows))]
 const DIR_SEPARATOR_S: &[u8] = b"/\0";
+#[cfg(windows)]
+const DIR_SEPARATOR_S: &[u8] = b"\\\0";
 
 use crate::doom::z_zone::PU_STATIC;
 
@@ -61,16 +67,24 @@ extern "C" {
     /// libc `free`: release memory previously returned by `malloc`/`calloc`.
     fn free(ptr: *mut c_void);
     /// libc `strdup`: allocate a malloc'd copy of a null-terminated string.
+    #[cfg_attr(windows, link_name = "_strdup")]
     fn strdup(s: *const c_char) -> *mut c_char;
     /// libc per-thread errno location, used by [`errno`].
+    #[cfg_attr(windows, link_name = "_errno")]
     fn __errno_location() -> *mut c_int;
     /// libc `mkdir`: create `path` with the given permission bits.
+    #[cfg(not(windows))]
     fn mkdir(path: *const c_char, mode: u32) -> c_int;
+    /// CRT `_mkdir`: create `path` (Windows has no permission bits).
+    #[cfg(windows)]
+    #[link_name = "_mkdir"]
+    fn mkdir(path: *const c_char) -> c_int;
     /// libc `toupper`: convert an ASCII character to upper case.
     fn toupper(c: c_int) -> c_int;
     /// libc `tolower`: convert an ASCII character to lower case.
     fn tolower(c: c_int) -> c_int;
     /// libc `strncasecmp`: case-insensitive compare of the first `n` bytes.
+    #[cfg_attr(windows, link_name = "_strnicmp")]
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
     /// libc `strlen`: length of a null-terminated string.
     fn strlen(s: *const c_char) -> usize;
@@ -113,7 +127,10 @@ unsafe fn errno() -> c_int {
 #[no_mangle]
 pub extern "C" fn M_MakeDirectory(path: *mut c_char) {
     unsafe {
+        #[cfg(not(windows))]
         mkdir(path, 0o755);
+        #[cfg(windows)]
+        mkdir(path);
     }
 }
 
@@ -201,12 +218,19 @@ pub extern "C" fn M_ReadFile(name: *mut c_char, buffer: *mut *mut c_char) -> c_i
 
 /// Returns a heap-allocated path of the form `"/tmp/<s>"`.
 ///
-/// Always uses `/tmp` on this port (the C original probes `TEMP` on Windows
-/// or `__DJGPP__`). The returned string is allocated by [`M_StringJoinA`]
+/// Uses `/tmp`; on Windows `%TEMP%` (or `.` when unset), like the C original's
+/// `_WIN32` branch. The returned string is allocated by [`M_StringJoinA`]
 /// and must be freed by the caller.
 #[no_mangle]
 pub extern "C" fn M_TempFile(s: *mut c_char) -> *mut c_char {
+    #[cfg(not(windows))]
     let tempdir = c"/tmp".as_ptr();
+    // SAFETY: getenv returns NULL or a valid NUL-terminated string owned by the CRT.
+    #[cfg(windows)]
+    let tempdir = match unsafe { getenv(c"TEMP".as_ptr()) } {
+        p if p.is_null() => c".".as_ptr(),
+        p => p as *const c_char,
+    };
     let sep = DIR_SEPARATOR_S.as_ptr() as *const c_char;
     let strs: [*const c_char; 4] = [tempdir, sep, s as *const c_char, std::ptr::null()];
     // SAFETY: null-terminated pointer array; ownership transferred to caller via return.
@@ -249,7 +273,11 @@ pub extern "C" fn M_ExtractFileBase(path: *mut c_char, dest: *mut c_char) {
     unsafe {
         let len = strlen(path);
         let mut src = path.add(len).sub(1);
-        while src != path && *src.sub(1) != DIR_SEPARATOR {
+        // Windows accepts `/` as well as `\\`.
+        while src != path
+            && *src.sub(1) != DIR_SEPARATOR
+            && !(cfg!(windows) && *src.sub(1) == b'/' as c_char)
+        {
             src = src.sub(1);
         }
         let filename = src;

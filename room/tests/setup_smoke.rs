@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Smoke test used by `setup.sh` step 7 (sheet 14 section 5.2): start the engine headless on an
-//! IWAD with a pack, enter the first map, run 70 tics, and require that the pack loaded and MW2
-//! mode is on for the level.
+//! Smoke test used by `iw4doom.sh` / `iw4doom.ps1` step 7 (sheet 14 section 5.2): start the
+//! engine headless on an IWAD with a pack, enter the first map, run 70 tics, and require that the
+//! pack loaded and MW2 mode is on for the level.
 //!
-//! `DMW_SMOKE_IWAD` and `DMW_SMOKE_PACK` select the user's IWAD and exported pack (`setup.sh`
+//! `DMW_SMOKE_IWAD` and `DMW_SMOKE_PACK` select the user's IWAD and exported pack (the launcher
 //! sets both). Without them the test uses the located test IWAD (`DMW_IWAD`, else
 //! `wads/freedoom1.wad`) and the in-memory fixture pack, so it runs in the normal suite and in
 //! CI with no MW2 data.

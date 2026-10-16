@@ -231,6 +231,7 @@ struct spritedef_t {
 
 extern "C" {
     /// POSIX case-insensitive string comparison, at most `n` bytes.
+    #[cfg_attr(windows, link_name = "_strnicmp")]
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
 }
 

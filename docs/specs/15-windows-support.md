@@ -115,3 +115,10 @@ Unchanged: no game data in the repo or CI.
 ## 11. Contract changes requested
 
 1. 00 D21: Windows (x86-64, MSVC) is a supported platform alongside Linux.
+2. One command on both systems (user request via the lead, 2026-10-16; supersedes §5.3's `setup.ps1` + generated `play.bat` and sheet 14's `setup.sh` + generated `play.sh`):
+   - Linux: tracked `iw4doom.sh`; Windows: tracked `iw4doom.bat` (double-clickable) running `powershell -NoProfile -ExecutionPolicy Bypass -File iw4doom.ps1 %*`. Same eight steps as sheet 14 §5.2, step 8 starts the game with any extra arguments passed through. Flags: `--list`, `--iwad NAME`, `--games DIR`, `--reexport`, `--clean`, `--setup-only` (PowerShell spellings `-List` etc. accepted). `setup.sh` remains as a shim for `iw4doom.sh --setup-only`.
+   - Later runs: cargo's freshness check plus the pack manifest decide; the smoke test runs only when the game binary or the pack changed since the last pass (stamp `target/release/.iw4doom-smoke-ok`).
+   - Missing prerequisites: when stdin is a terminal and `CI`/`IW4DOOM_NONINTERACTIVE` are unset, the script shows the exact install command and asks `[Y/n]`; on yes it runs it (Linux: the distribution's package install with `sudo`, the official rustup installer with `-y`; Windows: `winget install Rustlang.Rustup` / `Microsoft.VisualStudio.2022.BuildTools` with the VC tools workload). On no, or without a terminal, it prints the instructions and exits 1 (the old behaviour). This replaces "never runs sudo / never downloads or runs installers".
+   - Log: `iw4doom.log` (was `setup.log`). Tests: `tools/test-iw4doom-launcher.sh` / `.ps1` (T14.2-T14.4, T15.3) in CI.
+   - 00 §4.1 file list: `iw4doom.sh`, `iw4doom.bat`, `iw4doom.ps1`, `tools/fetch-freedoom.ps1`, `tools/test-iw4doom-launcher.{sh,ps1}`, `.gitattributes` (LF checkouts; CRLF for `.bat`) replace `play.sh`/`setup.log`.
+3. Config lookup on Windows: `%APPDATA%` stands in for `XDG_CONFIG_HOME` when that is unset (`%APPDATA%\iw4doom\iw4doom.toml`, then the `doommw2` fallback), as §5.2 says.

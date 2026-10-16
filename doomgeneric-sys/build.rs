@@ -230,6 +230,9 @@ fn main() {
 
     build.compile("doomgeneric");
 
-    // Link against libm for math functions used by the engine.
-    println!("cargo:rustc-link-lib=m");
+    // Link against libm for math functions used by the engine. Windows has no separate libm
+    // (the math functions are in the C runtime), and MSVC fails on a missing `m.lib`.
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
+        println!("cargo:rustc-link-lib=m");
+    }
 }

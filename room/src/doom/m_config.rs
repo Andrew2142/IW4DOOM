@@ -99,6 +99,7 @@ extern "C" {
     /// libc `printf`: used for the boot-time status messages.
     fn printf(fmt: *const c_char, ...) -> c_int;
     /// libc `strdup`: heap-duplicate a string (for `String` variables).
+    #[cfg_attr(windows, link_name = "_strdup")]
     fn strdup(s: *const c_char) -> *mut c_char;
     /// libc `strcmp`: compare two C strings.
     fn strcmp(a: *const c_char, b: *const c_char) -> c_int;
@@ -581,9 +582,12 @@ const SCANTOKEY: [c_int; 128] = [
     0,
 ];
 
-/// Unix directory separator string with trailing NUL (C
-/// `DIR_SEPARATOR_S = "/"`). Used by [`M_GetSaveGameDir`].
+/// Directory separator string with trailing NUL (C `DIR_SEPARATOR_S`:
+/// `"/"`; `"\\"` on Windows). Used by [`M_GetSaveGameDir`].
+#[cfg(not(windows))]
 const DIR_SEPARATOR_S: &[u8] = b"/\0";
+#[cfg(windows)]
+const DIR_SEPARATOR_S: &[u8] = b"\\\0";
 
 /// Linear search for the entry named `name` in a [`DefaultCollection`].
 ///

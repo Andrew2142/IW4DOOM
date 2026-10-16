@@ -176,3 +176,4 @@ The repository ships code only. Users' game data lives in `games/` and the deriv
 
 1. 00 D3: iw4L is consumed as pinned **git** dependencies (same rev) with an optional local path override, replacing sibling path dependencies. — Resolved in 00 Revision 11.
 2. 00 §4.1/§4.2: add `games/` (user data root) and `setup.sh`/`play.sh`; `DMW_MW2_GAMES` defaults to `<repo>/games`. — Resolved in 00 Revision 11 (with the IW4DOOM rename: binary `iw4doom`, config `iw4doom.toml`).
+3. Amended by sheet 15 §11 item 2 (user request, 2026-10-16): `setup.sh` + generated `play.sh` became one tracked command, `iw4doom.sh` (setup on first run, then launch; `setup.sh` is a shim for `iw4doom.sh --setup-only`). The "never runs `sudo`" rule of §5.2 step 3 is replaced by "installs only after an explicit interactive yes". The log is `iw4doom.log`.

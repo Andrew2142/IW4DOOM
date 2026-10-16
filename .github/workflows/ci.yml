@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# IW4DOOM CI (docs/specs/14-packaging-and-release.md section 5.6). Uses Freedoom only: no game
-# data, no secrets. demo_playthrough needs the shareware doom1.wad and is skipped here.
+# IW4DOOM CI (docs/specs/14-packaging-and-release.md section 5.6, Windows: sheet 15 section 5.4).
+# Uses Freedoom only: no game data, no secrets. demo_playthrough needs the shareware doom1.wad
+# and is skipped here.
 name: CI
 
 on:
@@ -57,6 +58,9 @@ jobs:
       - name: iw4L pin
         run: tools/check-iw4l-rev.sh
 
+      - name: Launcher failure modes (iw4doom.sh)
+        run: tools/test-iw4doom-launcher.sh
+
       - name: cargo check
         run: cargo check --locked --workspace --exclude c2rust-intermediate --all-targets
 
@@ -71,15 +75,68 @@ jobs:
           DMW_IWAD: wads/freedoom1.wad
         run: cargo test --locked --workspace --exclude c2rust-intermediate -- --skip demo_playthrough
 
+  windows:
+    name: Windows (check, test, launcher)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      # .gitattributes already forces LF; this keeps any file it misses byte-identical too.
+      - name: Git line endings
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version --verbose
+          rustup show active-toolchain
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Freedoom IWADs
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\fetch-freedoom.ps1
+
+      # T15.3: iw4doom.bat / iw4doom.ps1 under Windows PowerShell 5.1, before anything is built.
+      - name: Launcher failure modes (iw4doom.bat)
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\test-iw4doom-launcher.ps1
+
+      - name: cargo check
+        run: cargo check --locked --workspace --exclude c2rust-intermediate --all-targets
+
+      - name: Build the game (release, as iw4doom.bat does)
+        run: cargo build --release --locked --bin iw4doom
+
+      - name: Tests
+        env:
+          DMW_IWAD: wads/freedoom1.wad
+        run: cargo test --locked --workspace --exclude c2rust-intermediate --no-fail-fast -- --skip demo_playthrough
+
   exporter:
-    name: build tools/dmw_export
+    name: build tools/dmw_export (${{ matrix.os }})
     if: github.event_name == 'workflow_dispatch' && inputs.exporter
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
       - name: System packages
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -102,6 +159,7 @@ jobs:
 
       - name: Build and test the exporter (no MW2 data)
         working-directory: tools/dmw_export
+        shell: bash
         run: |
           cargo build --release --locked
           cargo test --release --locked

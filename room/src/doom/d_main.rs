@@ -348,8 +348,10 @@ extern "C" {
     /// Compares two null-terminated C strings lexicographically; returns 0 if equal.
     fn strcmp(s1: *const c_char, s2: *const c_char) -> c_int;
     /// Case-insensitive comparison of two null-terminated C strings; returns 0 if equal.
+    #[cfg_attr(windows, link_name = "_stricmp")]
     fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     /// Case-insensitive comparison of at most `n` bytes of two null-terminated C strings; returns 0 if equal.
+    #[cfg_attr(windows, link_name = "_strnicmp")]
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
     /// Converts the initial portion of the null-terminated C string `nptr` to `c_int`.
     fn atoi(nptr: *const c_char) -> c_int;
