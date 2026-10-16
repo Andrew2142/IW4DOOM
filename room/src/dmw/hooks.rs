@@ -513,7 +513,10 @@ pub(crate) fn draw_player_weapon() -> bool {
 
 /// `D_Display`, right after `R_RenderPlayerView`: crosshair, hitmarker, scope overlay.
 pub(crate) fn draw_view_overlays() {
-    guarded("draw_view_overlays", (), super::hud::draw_view_overlays);
+    guarded("draw_view_overlays", (), || {
+        super::hud::draw_view_overlays();
+        super::hud::draw_use_prompt();
+    });
 }
 
 /// `ST_Drawer` / `ST_updateWidgets`: magazine count for the AMMO widget, if MW2 owns it.
@@ -522,7 +525,9 @@ pub(crate) unsafe fn status_ammo(player: *mut PlayerT) -> Option<c_int> {
         return None;
     }
     // SAFETY: forwarded unchanged; `status_ammo` never dereferences the pointer.
-    guarded("status_ammo", None, || unsafe { super::hud::status_ammo(player) })
+    guarded("status_ammo", None, || unsafe {
+        super::hud::status_ammo(player)
+    })
 }
 
 /// `G_DoSaveGame`, right after `P_WriteSaveGameEOF`: append the DOOMMW2 extension block

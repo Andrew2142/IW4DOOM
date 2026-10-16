@@ -7,9 +7,7 @@
 mod support;
 
 use room::dmw::{mode, test_api};
-use room::doom::doomkeys::{
-    KEY_DOWNARROW, KEY_FIRE, KEY_LEFTARROW, KEY_RIGHTARROW, KEY_RSHIFT, KEY_UPARROW, KEY_USE,
-};
+use room::doom::doomkeys::{KEY_FIRE, KEY_LEFTARROW, KEY_RIGHTARROW, KEY_RSHIFT};
 
 use support::{find_wad, Harness};
 
@@ -17,13 +15,13 @@ const KEYS: [u8; 18] = [
     KEY_FIRE,
     KEY_FIRE,
     KEY_FIRE,
-    KEY_UPARROW,
-    KEY_UPARROW,
-    KEY_DOWNARROW,
+    b'w',
+    b'w',
+    b's',
     KEY_LEFTARROW,
     KEY_RIGHTARROW,
     KEY_RSHIFT,
-    KEY_USE,
+    b'f',
     b'1',
     b'2',
     b'3',

@@ -6,7 +6,6 @@
 
 mod support;
 
-use room::doom::doomkeys::KEY_UPARROW;
 use room::doom::info::{MF_COUNTKILL, MT_TROOP};
 
 use support::golden::{decode_png, Rect};
@@ -78,7 +77,7 @@ fn harness_smoke() {
 
     // Key injection: hold forward for 10 tics moves the player north; the release follows.
     let y0 = h.pos().1;
-    h.hold(KEY_UPARROW, 10);
+    h.hold(b'w', 10);
     h.run_tics(2);
     assert!(h.pos().1 > y0 + 10.0, "forward key moved the player north");
     h.run_tics(40); // momentum dies

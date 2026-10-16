@@ -141,16 +141,37 @@ pub fn is_reloading(weaponstate: i32) -> bool {
     (WeaponState::Reloading as i32..=WeaponState::ReloadEnd as i32).contains(&weaponstate)
 }
 
-/// The text of the low-ammo prompt, if one is due (section 5.3): "RELOAD" when the magazine is
-/// at most a quarter full (at least 1) and the pool has rounds, "NO AMMO" when both are empty.
-pub fn ammo_prompt(clip: i32, stock: i32, clip_size: i32, reloading: bool) -> Option<&'static str> {
+/// The text of the low-ammo prompt, if one is due (section 5.3): "Press R to reload" (`R` is
+/// `reload_key`, the label of the bound key) when the magazine is at most a quarter full (at
+/// least 1) and the pool has rounds, "NO AMMO" when both are empty.
+pub fn ammo_prompt(
+    clip: i32,
+    stock: i32,
+    clip_size: i32,
+    reloading: bool,
+    reload_key: &str,
+) -> Option<String> {
     if reloading {
         return None;
     }
     if clip <= 0 && stock <= 0 {
-        return Some("NO AMMO");
+        return Some("NO AMMO".to_owned());
     }
-    (clip <= (clip_size / 4).max(1) && stock > 0).then_some("RELOAD")
+    (clip <= (clip_size / 4).max(1) && stock > 0).then(|| format!("Press {reload_key} to reload"))
+}
+
+/// Rows between the reload prompt and the door prompt below it.
+const PROMPT_LINE_H: i32 = 10;
+
+/// Top row of the door prompt: the reload slot when no reload prompt is due, else the row
+/// under it (the slot stays reserved through the reload prompt's blink so the text below
+/// does not jump).
+pub fn use_prompt_top(reload_top: i32, reload_due: bool) -> i32 {
+    if reload_due {
+        reload_top + PROMPT_LINE_H
+    } else {
+        reload_top
+    }
 }
 
 /// Top row of the prompt text: 12 rows below the centre, or four rows under the lower arm when
@@ -337,6 +358,21 @@ struct HudState {
     overlays_off: bool,
     /// Digit and font patches, `None` until looked up; `Some(None)` when a lump is missing.
     patches: Option<Option<Patches>>,
+    /// Where this frame's reload prompt sits (set by [`draw_view_overlays`]).
+    slot: Option<PromptSlot>,
+    /// The door/switch prompt drawn in the last frame, if any.
+    use_prompt: Option<String>,
+    /// The reload / no-ammo prompt due in the last frame (drawn only in the blink's on phase).
+    reload_prompt: Option<String>,
+}
+
+/// Layout facts the door prompt needs from the reload prompt's frame.
+#[derive(Clone, Copy)]
+struct PromptSlot {
+    cx: i32,
+    top: i32,
+    reload_due: bool,
+    scoped: bool,
 }
 
 thread_local! {
@@ -570,6 +606,11 @@ fn console_alive() -> bool {
 /// `D_Display`, right after `R_RenderPlayerView`: scope overlay, crosshair, hitmarker, ammo
 /// counter and prompt, in that order. Draws nothing unless an MW2 weapon is in hand.
 pub(crate) fn draw_view_overlays() {
+    HUD.with(|h| {
+        let mut h = h.borrow_mut();
+        h.slot = None;
+        h.reload_prompt = None;
+    });
     if !mode::weapons_active() || HUD.with(|h| h.borrow().overlays_off) {
         return;
     }
@@ -650,22 +691,103 @@ pub(crate) fn draw_view_overlays() {
         };
         draw_hitmarker(&mut cv, layout.cx, layout.cy, colour);
     }
+    let slot = |reload_due| PromptSlot {
+        cx: layout.cx,
+        top: prompt_top(&layout),
+        reload_due,
+        scoped: v.overlay_active,
+    };
     if !alive || !frame.ammo_counter {
+        HUD.with(|h| h.borrow_mut().slot = Some(slot(false)));
         return;
     }
-    if let Some(text) = ammo_prompt(
+    let reload = ammo_prompt(
         v.clip,
         v.stock,
         frame.hud.clip_size,
         is_reloading(v.weaponstate) || v.overlay_active,
-    ) {
+        &super::useprompt::key_label(
+            // SAFETY: plain int written at startup on the engine thread.
+            unsafe { crate::doom::m_controls::key_dmw_reload },
+        ),
+    );
+    HUD.with(|h| {
+        let mut h = h.borrow_mut();
+        h.slot = Some(slot(reload.is_some()));
+        h.reload_prompt.clone_from(&reload);
+    });
+    if let Some(text) = reload {
         if blink_on(HUD.with(|h| h.borrow().tic)) {
-            draw_text_centred(text, layout.cx, prompt_top(&layout));
+            draw_text_centred(&text, layout.cx, prompt_top(&layout));
         }
     }
     if view_rect.h >= SCREEN_H as i32 {
         draw_fullscreen_counter(v.clip, v.stock, view_rect);
     }
+}
+
+/// The door and switch prompt, drawn after [`draw_view_overlays`] (same `D_Display` call
+/// site): what Use would hit this frame, below the reload prompt slot. Nothing is activated.
+/// Hidden when dead, scoped, a menu is open, or nothing useful is in reach.
+pub(crate) fn draw_use_prompt() {
+    HUD.with(|h| h.borrow_mut().use_prompt = None);
+    if !mode::level_active() || HUD.with(|h| h.borrow().overlays_off) {
+        return;
+    }
+    // SAFETY: engine globals on the engine thread.
+    let (menu, automap, view_rect, use_key) = unsafe {
+        use crate::doom::r_draw::{scaledviewwidth, viewheight, viewwindowx, viewwindowy};
+        (
+            crate::doom::m_menu::menuactive != 0,
+            crate::doom::am_map::automapactive != 0,
+            ViewRect {
+                x: viewwindowx,
+                y: viewwindowy,
+                w: scaledviewwidth,
+                h: viewheight,
+            },
+            crate::doom::m_controls::key_use,
+        )
+    };
+    if menu || automap || view_rect.w <= 0 || view_rect.h <= 0 || !console_alive() {
+        return;
+    }
+    let slot = HUD.with(|h| h.borrow().slot);
+    if slot.is_some_and(|s| s.scoped) {
+        return;
+    }
+    // SAFETY: `console_alive` just checked the index and the map object.
+    let player = unsafe {
+        let cp = usize::try_from(crate::doom::g_game::consoleplayer).unwrap_or(0);
+        &*(&raw const crate::doom::g_game::players)
+            .cast::<PlayerT>()
+            .add(cp)
+    };
+    // SAFETY: live console player, engine thread, level loaded.
+    let Some(text) = (unsafe { super::useprompt::current(player, use_key) }) else {
+        return;
+    };
+    let (cx, top, due) = slot.map_or(
+        (
+            view_rect.x + view_rect.w / 2,
+            view_rect.y + view_rect.h / 2 + 12,
+            false,
+        ),
+        |s| (s.cx, s.top, s.reload_due),
+    );
+    draw_text_centred(&text, cx, use_prompt_top(top, due));
+    HUD.with(|h| h.borrow_mut().use_prompt = Some(text));
+}
+
+/// The reload / no-ammo prompt text due in the last frame, whether or not the blink showed it
+/// (`None` when none was due); for tests.
+pub fn reload_prompt_text() -> Option<String> {
+    HUD.with(|h| h.borrow().reload_prompt.clone())
+}
+
+/// The door/switch prompt text drawn in the last frame (`None` when none was); for tests.
+pub fn use_prompt_text() -> Option<String> {
+    HUD.with(|h| h.borrow().use_prompt.clone())
 }
 
 /// `ST_updateWidgets`: the magazine count for the AMMO widget while an MW2 weapon is in hand,
@@ -958,18 +1080,30 @@ mod tests {
 
     #[test]
     fn prompt_rules() {
-        assert_eq!(ammo_prompt(30, 90, 30, false), None);
-        assert_eq!(ammo_prompt(8, 90, 30, false), None);
-        assert_eq!(ammo_prompt(7, 90, 30, false), Some("RELOAD"));
+        let p = |c, s, z, r| ammo_prompt(c, s, z, r, "R");
+        assert_eq!(p(30, 90, 30, false), None);
+        assert_eq!(p(8, 90, 30, false), None);
+        assert_eq!(p(7, 90, 30, false).as_deref(), Some("Press R to reload"));
         assert_eq!(
-            ammo_prompt(1, 90, 5, false),
-            Some("RELOAD"),
+            p(1, 90, 5, false).as_deref(),
+            Some("Press R to reload"),
             "at least one round"
         );
-        assert_eq!(ammo_prompt(2, 90, 5, false), None);
-        assert_eq!(ammo_prompt(0, 0, 30, false), Some("NO AMMO"));
-        assert_eq!(ammo_prompt(3, 0, 30, false), None, "nothing to reload with");
-        assert_eq!(ammo_prompt(0, 40, 30, true), None, "not while reloading");
+        assert_eq!(p(2, 90, 5, false), None);
+        assert_eq!(p(0, 0, 30, false).as_deref(), Some("NO AMMO"));
+        assert_eq!(p(3, 0, 30, false), None, "nothing to reload with");
+        assert_eq!(p(0, 40, 30, true), None, "not while reloading");
+        assert_eq!(
+            ammo_prompt(7, 90, 30, false, "T").as_deref(),
+            Some("Press T to reload"),
+            "the letter follows the binding"
+        );
+        assert_eq!(use_prompt_top(100, false), 100);
+        assert_eq!(
+            use_prompt_top(100, true),
+            110,
+            "stacks under the reload prompt"
+        );
         assert!(is_reloading(WeaponState::Reloading as i32));
         assert!(is_reloading(WeaponState::ReloadEnd as i32));
         assert!(!is_reloading(WeaponState::Ready as i32));

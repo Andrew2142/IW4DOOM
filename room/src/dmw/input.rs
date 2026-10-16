@@ -330,6 +330,14 @@ pub(crate) fn force_run() -> bool {
 pub(crate) fn apply_bindings(cfg: &crate::dmw::config::InputCfg) {
     // SAFETY: plain ints on the single engine thread; no reference to them is live.
     unsafe {
+        // Doom's own movement and use keys. An unbound key becomes code 0, which no device
+        // produces, because `G_BuildTiccmd` indexes `gamekeydown` with these directly.
+        let code = |k: crate::dmw::config::KeyBind| k.0.max(0);
+        mc::key_up = code(cfg.key_up);
+        mc::key_down = code(cfg.key_down);
+        mc::key_strafeleft = code(cfg.key_strafeleft);
+        mc::key_straferight = code(cfg.key_straferight);
+        mc::key_use = code(cfg.key_use);
         mc::key_dmw_reload = cfg.key_dmw_reload.0;
         mc::key_dmw_ads = cfg.key_dmw_ads.0;
         mc::mouseb_dmw_ads = cfg.mouseb_dmw_ads;

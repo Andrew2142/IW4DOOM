@@ -57,6 +57,7 @@ pub mod mode;
 pub mod save;
 #[cfg(feature = "test-hooks")]
 pub mod test_api;
+pub mod useprompt;
 pub mod viewmodel;
 pub mod weapons;
 

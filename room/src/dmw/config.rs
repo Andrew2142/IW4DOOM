@@ -313,6 +313,16 @@ pub struct InputCfg {
     pub raw_mouse: bool,
     /// Grab the cursor as soon as the window opens.
     pub grab_on_start: bool,
+    /// Move forward (Doom `key_up`).
+    pub key_up: KeyBind,
+    /// Move back (Doom `key_down`).
+    pub key_down: KeyBind,
+    /// Strafe left (Doom `key_strafeleft`).
+    pub key_strafeleft: KeyBind,
+    /// Strafe right (Doom `key_straferight`).
+    pub key_straferight: KeyBind,
+    /// Open doors and press switches (Doom `key_use`).
+    pub key_use: KeyBind,
     /// Reload key.
     pub key_dmw_reload: KeyBind,
     /// ADS key (unbound by default; ADS is on the right mouse button).
@@ -340,6 +350,11 @@ impl Default for InputCfg {
         Self {
             raw_mouse: true,
             grab_on_start: true,
+            key_up: KeyBind(i32::from(b'w')),
+            key_down: KeyBind(i32::from(b's')),
+            key_strafeleft: KeyBind(i32::from(b'a')),
+            key_straferight: KeyBind(i32::from(b'd')),
+            key_use: KeyBind(i32::from(b'f')),
             key_dmw_reload: KeyBind(i32::from(b'r')),
             key_dmw_ads: KeyBind::UNBOUND,
             mouseb_dmw_ads: 1,
@@ -914,6 +929,19 @@ mod tests {
         )
         .expect("parses");
         assert_eq!(cfg.input.key_dmw_reload, KeyBind(i32::from(b't')));
+        let moved: DmwConfig = toml::from_str(
+            "[input]\nkey_up = \"uparrow\"\nkey_down = \"downarrow\"\nkey_strafeleft = \"q\"\n\
+             key_straferight = \"e\"\nkey_use = \"space\"\n",
+        )
+        .expect("parses");
+        assert_eq!(moved.input.key_up, KeyBind(i32::from(KEY_UPARROW)));
+        assert_eq!(moved.input.key_down, KeyBind(i32::from(KEY_DOWNARROW)));
+        assert_eq!(moved.input.key_strafeleft, KeyBind(i32::from(b'q')));
+        assert_eq!(moved.input.key_straferight, KeyBind(i32::from(b'e')));
+        assert_eq!(moved.input.key_use, KeyBind(i32::from(b' ')));
+        let round: DmwConfig =
+            toml::from_str(&toml::to_string(&moved).expect("serialises")).expect("round trips");
+        assert_eq!(round, moved);
         assert_eq!(cfg.input.key_dmw_ads, KeyBind(i32::from(KEY_RCTRL)));
         assert_eq!(cfg.input.key_dmw_sprint, KeyBind(32));
         assert_eq!(cfg.input.key_dmw_melee, KeyBind::UNBOUND);
@@ -926,6 +954,12 @@ mod tests {
     fn key_binding_defaults_match_the_contract() {
         // 00 section 8.3.
         let i = InputCfg::default();
+        // Contract change request (sheet 05 section 11): WASD movement and F use.
+        assert_eq!(i.key_up.0, i32::from(b'w'));
+        assert_eq!(i.key_down.0, i32::from(b's'));
+        assert_eq!(i.key_strafeleft.0, i32::from(b'a'));
+        assert_eq!(i.key_straferight.0, i32::from(b'd'));
+        assert_eq!(i.key_use.0, i32::from(b'f'));
         assert_eq!(i.key_dmw_reload.0, 114);
         assert_eq!(i.key_dmw_ads.0, -1);
         assert_eq!(i.mouseb_dmw_ads, 1);
