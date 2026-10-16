@@ -37,6 +37,38 @@ struct Args {
     /// Use the alternate faction's view hands.
     #[arg(long)]
     axis_hands: bool,
+    /// Where iw4L keeps its decoded-image cache (MW2-derived data). Default: `.dmw_export-cache`
+    /// next to `--out`; with `--list`, a temporary directory removed on exit.
+    #[arg(long, value_name = "DIR")]
+    cache_dir: Option<PathBuf>,
+}
+
+/// iw4L writes its artifact cache (decoded image mips) to `$IW4L_ARTIFACTS_DIR`, else to
+/// `./iw4l-artifacts`. Setting the variable needs `unsafe` in edition 2024, so the exporter
+/// moves its working directory into a cache directory it controls instead: MW2-derived bytes
+/// never land in the caller's directory (for example the repository, under `task export`).
+/// Returns the directory to delete on exit, if any.
+fn enter_cache_dir(args: &Args, out: Option<&std::path::Path>) -> Result<Option<PathBuf>, String> {
+    if std::env::var_os("IW4L_ARTIFACTS_DIR").is_some() {
+        return Ok(None);
+    }
+    let (dir, temporary) = match (&args.cache_dir, out) {
+        (Some(d), _) => (std::path::absolute(d).map_err(|e| e.to_string())?, false),
+        (None, Some(out)) => (
+            out.parent()
+                .unwrap_or_else(|| std::path::Path::new("/"))
+                .join(".dmw_export-cache"),
+            false,
+        ),
+        (None, None) => (
+            std::env::temp_dir().join(format!("dmw_export-cache-{}", std::process::id())),
+            true,
+        ),
+    };
+    std::fs::create_dir_all(&dir).map_err(|e| format!("cache dir {}: {e}", dir.display()))?;
+    std::env::set_current_dir(&dir).map_err(|e| format!("cache dir {}: {e}", dir.display()))?;
+    println!("iw4L cache: {}", dir.join("iw4l-artifacts").display());
+    Ok(temporary.then_some(dir))
 }
 
 const EXIT_NOT_FOUND: u8 = 2;
@@ -86,6 +118,14 @@ fn main() -> ExitCode {
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
 
+    // Relative paths are resolved before the working directory moves (enter_cache_dir).
+    let out = match args.out.as_deref().map(std::path::absolute).transpose() {
+        Ok(o) => o,
+        Err(e) => {
+            println!("--out: {e}");
+            return ExitCode::from(1);
+        }
+    };
     let games = match load::games_root() {
         Ok(g) => g,
         Err(e) => {
@@ -93,6 +133,28 @@ fn main() -> ExitCode {
             return ExitCode::from(EXIT_NOT_FOUND);
         }
     };
+    let temp_cache = match enter_cache_dir(&args, out.as_deref()) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("error: {e}");
+            return ExitCode::from(EXIT_WRITE);
+        }
+    };
+    let code = run(&args, out, games, started_at, started_unix);
+    if let Some(dir) = temp_cache {
+        let _ = std::env::set_current_dir(std::env::temp_dir());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+    code
+}
+
+fn run(
+    args: &Args,
+    out: Option<PathBuf>,
+    games: asset_transport::GamesRoot,
+    started_at: Instant,
+    started_unix: u64,
+) -> ExitCode {
     println!("games root: {}", games.0.display());
     let loaded = match load::load(games, &args.zone) {
         Ok(l) => l,
@@ -120,7 +182,7 @@ fn main() -> ExitCode {
         list(&loaded);
         return ExitCode::SUCCESS;
     }
-    let Some(out) = args.out.clone() else {
+    let Some(out) = out else {
         println!("--out is required");
         return ExitCode::from(1);
     };

@@ -77,7 +77,9 @@ pub fn games_root() -> Result<GamesRoot, LoadError> {
         }
         return Err(LoadError::NotFound(text));
     };
-    let path = PathBuf::from(raw);
+    let path = std::path::absolute(PathBuf::from(raw)).map_err(|e| {
+        LoadError::NotFound(format!("MW2 Multiplayer was not found: games root: {e}"))
+    })?;
     if !path.is_dir() {
         return Err(LoadError::NotFound(format!(
             "MW2 Multiplayer was not found: games root {} is not a directory",
