@@ -28,8 +28,8 @@
   <a href="#credits">Credits</a>
 </p>
 
-https://github.com/user-attachments/assets/809e7243-ec85-4f29-b5a1-a28a8d34f7bd
 
+https://github.com/user-attachments/assets/b70fbc4a-1891-48b7-ae0e-106df93028c9
 
 <p align="center"><sub>Freedoom with the built-in placeholder gun. With your own MW2 install you get the real weapons.</sub></p>
 
