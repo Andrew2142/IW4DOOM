@@ -1132,7 +1132,13 @@ extern "C" fn M_DrawOptions() {
 }
 
 /// No-op activation callback for the Options menu item (navigation handled by `M_Responder`).
-extern "C" fn M_Options(_choice: c_int) {}
+extern "C" fn M_Options(_choice: c_int) {
+    // room left this as an empty stub, so the main menu's OPTIONS item did nothing.
+    // Chocolate Doom: M_SetupNextMenu(&OptionsDef).
+    unsafe {
+        M_SetupNextMenu(&raw mut OptionsDef);
+    }
+}
 
 /// Toggle the `showMessages` setting and display a confirmation HUD message.
 extern "C" fn M_ChangeMessages(_choice: c_int) {
