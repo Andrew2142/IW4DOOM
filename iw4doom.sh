@@ -31,7 +31,7 @@ Usage: ./iw4doom.sh [options] [game arguments]
 
 Checks and builds what is needed (the first run takes 15-20 minutes), then starts the game.
 
-  --list          List the Doom IWADs in games/doom/ and exit.
+  --list          List the Doom IWADs in games/ (and games/doom/) and exit.
   --iwad NAME     Play this IWAD (a name from --list, or a path) instead of the preferred one.
   --games DIR     Folder with your game files (default: games/ in this repository).
                   It must contain iw4/ (MW2 multiplayer install) and doom/ (Doom IWADs);
@@ -130,16 +130,45 @@ confirm() {
     esac
 }
 
-# Every file in DIR whose first four bytes are "IWAD", one per line.
+# Every IWAD (first four bytes "IWAD") in games/doom/ and directly in games/, one per line.
+# The argument is ignored (kept so callers read naturally); people drop WADs in either place.
 list_iwads() {
-    local f
-    [ -d "$1" ] || return 0
-    for f in "$1"/*; do
-        [ -f "$f" ] || continue
-        if [ "$(head -c 4 "$f" 2>/dev/null)" = "IWAD" ]; then
-            printf '%s\n' "$f"
+    local f dir
+    for dir in "$GAMES/doom" "$GAMES"; do
+        [ -d "$dir" ] || continue
+        for f in "$dir"/*; do
+            [ -f "$f" ] || continue
+            if [ "$(head -c 4 "$f" 2>/dev/null)" = "IWAD" ]; then
+                printf '%s\n' "$f"
+            fi
+        done
+    done
+}
+
+# The MW2 install inside games/: games/iw4 if it is one, otherwise the first folder directly in
+# games/ that has zone/**/common_mp.ff (e.g. a copied "Call of Duty Modern Warfare 2" folder).
+find_mw2() {
+    local d
+    if [ -d "$GAMES/iw4/zone" ]; then
+        printf '%s\n' "$GAMES/iw4"
+        return 0
+    fi
+    for d in "$GAMES"/*/; do
+        d="${d%/}"
+        [ -d "$d/zone" ] || continue
+        if [ -n "$(find -L "$d/zone" -iname 'common_mp.ff' -print -quit 2>/dev/null || true)" ]; then
+            printf '%s\n' "$d"
+            return 0
         fi
     done
+    for d in "$GAMES"/*/; do
+        d="${d%/}"
+        if [ -d "$d/zone" ]; then
+            printf '%s\n' "$d"
+            return 0
+        fi
+    done
+    return 0
 }
 
 # The preferred IWAD among list_iwads, by IWAD_ORDER (case-insensitive), then any other.
@@ -174,10 +203,10 @@ fi
 if [ "$LIST" = 1 ]; then
     default="$(pick_iwad "$GAMES/doom")"
     if [ -z "$default" ]; then
-        echo "No IWADs in $(show "$GAMES/doom")/ (see games/README.md)"
+        echo "No IWADs in $(show "$GAMES")/ (see games/README.md)"
         exit 1
     fi
-    echo "IWADs in $(show "$GAMES/doom")/:"
+    echo "IWADs in $(show "$GAMES")/:"
     while IFS= read -r f; do
         if [ "$f" = "$default" ]; then
             echo "  $(basename "$f")  (default)"
@@ -196,11 +225,13 @@ log "IW4DOOM in $ROOT, games folder $GAMES"
 # ---------------------------------------------------------------------------------------------
 step 1 "Checking your game files in $(show "$GAMES")/"
 problems=()
-iw4="$GAMES/iw4"
-if [ ! -d "$iw4" ]; then
-    problems+=("missing: $(show "$iw4")/ - your Modern Warfare 2 (2009) MULTIPLAYER install, a copy or a symlink to the folder with iw4mp.exe, main/ and zone/")
-elif [ ! -d "$iw4/zone" ]; then
-    problems+=("$(show "$iw4")/ has no zone/ folder - point it at the MW2 install folder itself (the one with iw4mp.exe)")
+iw4="$(find_mw2)"
+if [ -z "$iw4" ]; then
+    if [ -e "$GAMES/iw4" ]; then
+        problems+=("$(show "$GAMES/iw4")/ has no zone/ folder - point it at the MW2 install folder itself (the one with main/ and zone/)")
+    else
+        problems+=("missing: your Modern Warfare 2 (2009) MULTIPLAYER install - put the MW2 folder (the one with main/ and zone/) in $(show "$GAMES")/, as a copy or a symlink")
+    fi
 else
     common="$(find -L "$iw4/zone" -iname 'common_mp.ff' -print -quit 2>/dev/null || true)"
     zone="$(find -L "$iw4/zone" -iname "$EXPORT_ZONE.ff" -print -quit 2>/dev/null || true)"
@@ -233,7 +264,7 @@ if [ -n "$IWAD_ARG" ]; then
 else
     IWAD="$(pick_iwad "$GAMES/doom")"
     if [ -z "$IWAD" ]; then
-        problems+=("missing: a Doom IWAD in $(show "$GAMES/doom")/ - doom2.wad, doom.wad, plutonia.wad, tnt.wad, doom1.wad (shareware) or Freedoom's freedoom1.wad / freedoom2.wad")
+        problems+=("missing: a Doom IWAD in $(show "$GAMES")/ - doom2.wad, doom.wad, plutonia.wad, tnt.wad, doom1.wad (shareware) or Freedoom's freedoom1.wad / freedoom2.wad")
     fi
 fi
 if [ ${#problems[@]} -gt 0 ]; then
@@ -429,8 +460,15 @@ else
     step 5 "Exporting your MW2 weapons to packs/mw2 ($reason; about a minute)"
     out_file="$(mktemp)"
     status=0
-    log "\$ DMW_MW2_GAMES=$GAMES $EXPORTER --out $PACK --zone $EXPORT_ZONE"
-    DMW_MW2_GAMES="$GAMES" "$EXPORTER" --out "$PACK" --zone "$EXPORT_ZONE" > "$out_file" 2>&1 || status=$?
+    # iw4L expects a games root with an "iw4" folder; link one up if MW2 sits under another name.
+    export_games="$GAMES"
+    if [ "$(readlink -f "$iw4")" != "$(readlink -f "$GAMES/iw4" 2>/dev/null || true)" ]; then
+        export_games="$ROOT/packs/.games-root"
+        mkdir -p "$export_games"
+        ln -sfn "$(readlink -f "$iw4")" "$export_games/iw4"
+    fi
+    log "\$ DMW_MW2_GAMES=$export_games $EXPORTER --out $PACK --zone $EXPORT_ZONE"
+    DMW_MW2_GAMES="$export_games" "$EXPORTER" --out "$PACK" --zone "$EXPORT_ZONE" > "$out_file" 2>&1 || status=$?
     cat "$out_file" >> "$LOG"
     log "exit status $status"
     case "$status" in

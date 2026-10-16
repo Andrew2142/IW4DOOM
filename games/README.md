@@ -2,14 +2,18 @@
 
 This folder is ignored by git. Nothing in it is ever uploaded.
 
+Drop in your Modern Warfare 2 (2009) multiplayer folder (the one with `main/` and `zone/`, under
+any name) and one or more Doom IWADs. Either of these layouts works:
+
 ```text
-games/
-  iw4/            Your Modern Warfare 2 (2009) MULTIPLAYER install — a link or a copy of
-                  the Steam folder that contains iw4mp.exe, main/ and zone/.
-  doom/           One or more Doom IWADs you own: doom2.wad, doom.wad, plutonia.wad,
-                  tnt.wad, doom1.wad, or Freedoom (freedoom1.wad / freedoom2.wad).
-  soundfont.sf2   Optional: a General MIDI soundfont for music.
+games/                                  games/
+  Call of Duty Modern Warfare 2/          iw4/            (MW2 folder, link or copy)
+  doom2.wad                               doom/doom2.wad
+  soundfont.sf2   (optional, music)       soundfont.sf2
 ```
+
+IWADs: doom2.wad, doom.wad, plutonia.wad, tnt.wad, doom1.wad (shareware) or Freedoom
+(freedoom1.wad / freedoom2.wad).
 
 A link saves copying the whole MW2 install.
 

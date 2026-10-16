@@ -51,9 +51,9 @@ expect() {
 expect "--help prints usage" 0 "Usage: ./iw4doom.sh|--setup-only" "" -- \
     ./iw4doom.sh --help
 expect "empty games dir names both missing items" 1 \
-    "[1/8]|missing: $tmp/empty/iw4/|missing: a Doom IWAD|games/README.md" "[2/8]" -- \
+    "[1/8]|missing: your Modern Warfare 2|missing: a Doom IWAD|games/README.md" "[2/8]" -- \
     ./iw4doom.sh --games "$tmp/empty"
-expect "Freedoom only names games/iw4" 1 "missing: $tmp/fd/iw4/" "a Doom IWAD|[2/8]" -- \
+expect "Freedoom only names the missing MW2 install" 1 "missing: your Modern Warfare 2" "a Doom IWAD|[2/8]" -- \
     ./iw4doom.sh --games "$tmp/fd"
 expect "--list shows the IWAD" 0 "freedoom1.wad  (default)" "" -- \
     ./iw4doom.sh --games "$tmp/fd" --list

@@ -192,12 +192,34 @@ function Test-Iwad([string]$Path) {
         return $false
     }
 }
-# Full paths of the IWADs in a folder.
+# Full paths of the IWADs in games\doom\ and directly in games\ (people drop WADs in either place).
+# The argument is ignored and kept so callers read naturally.
 function Get-Iwads([string]$Dir) {
-    if (-not (Test-Path -LiteralPath $Dir -PathType Container)) { return @() }
-    $found = @(Get-ChildItem -LiteralPath $Dir -File -ErrorAction SilentlyContinue |
-        Where-Object { Test-Iwad $_.FullName } | ForEach-Object { $_.FullName })
-    return $found
+    $found = New-Object System.Collections.Generic.List[string]
+    foreach ($d in @((Join-Path $GamesDir 'doom'), $GamesDir)) {
+        if (-not (Test-Path -LiteralPath $d -PathType Container)) { continue }
+        foreach ($f in @(Get-ChildItem -LiteralPath $d -File -ErrorAction SilentlyContinue)) {
+            if (Test-Iwad $f.FullName) { $found.Add($f.FullName) }
+        }
+    }
+    return @($found)
+}
+# The MW2 install inside games\: games\iw4 if it is one, otherwise the first folder directly in
+# games\ with zone\**\common_mp.ff (e.g. a copied "Call of Duty Modern Warfare 2" folder).
+function Find-Mw2 {
+    $iw4 = Join-Path $GamesDir 'iw4'
+    if (Test-Path -LiteralPath (Join-Path $iw4 'zone') -PathType Container) { return $iw4 }
+    $dirs = @(Get-ChildItem -LiteralPath $GamesDir -Directory -ErrorAction SilentlyContinue)
+    foreach ($d in $dirs) {
+        $z = Join-Path $d.FullName 'zone'
+        if (-not (Test-Path -LiteralPath $z -PathType Container)) { continue }
+        $c = Get-ChildItem -LiteralPath $z -Recurse -File -Filter 'common_mp.ff' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($c) { return $d.FullName }
+    }
+    foreach ($d in $dirs) {
+        if (Test-Path -LiteralPath (Join-Path $d.FullName 'zone') -PathType Container) { return $d.FullName }
+    }
+    return ''
 }
 # The preferred IWAD by $IwadOrder (names compare case-insensitively), then any other.
 function Select-Iwad([string]$Dir) {
@@ -270,10 +292,10 @@ $DoomDir = Join-Path $GamesDir 'doom'
 if ($List) {
     $default = Select-Iwad $DoomDir
     if (-not $default) {
-        Write-Host ('No IWADs in ' + (Show-Path $DoomDir) + '\ (see games\README.md)')
+        Write-Host ('No IWADs in ' + (Show-Path $GamesDir) + '\ (see games\README.md)')
         exit 1
     }
-    Write-Host ('IWADs in ' + (Show-Path $DoomDir) + '\:')
+    Write-Host ('IWADs in ' + (Show-Path $GamesDir) + '\:')
     foreach ($f in (Get-Iwads $DoomDir)) {
         if ($f -eq $default) { Write-Host ('  ' + (Split-Path -Leaf $f) + '  (default)') }
         else { Write-Host ('  ' + (Split-Path -Leaf $f)) }
@@ -289,16 +311,18 @@ Write-Log "IW4DOOM in $Root, games folder $GamesDir"
 # ---------------------------------------------------------------------------------------------
 Step 1 ('Checking your game files in ' + (Show-Path $GamesDir) + '\')
 $problems = New-Object System.Collections.Generic.List[string]
-$Iw4 = Join-Path $GamesDir 'iw4'
-$Zone = Join-Path $Iw4 'zone'
+$Iw4 = Find-Mw2
 $mw2Missing = $false
-if (-not (Test-Path -LiteralPath $Iw4 -PathType Container)) {
+if (-not $Iw4) {
     $mw2Missing = $true
-    $problems.Add('missing: ' + (Show-Path $Iw4) + '\ - your Modern Warfare 2 (2009) MULTIPLAYER install: a junction, symlink or copy of the folder with iw4mp.exe, main\ and zone\')
-} elseif (-not (Test-Path -LiteralPath $Zone -PathType Container)) {
-    $mw2Missing = $true
-    $problems.Add((Show-Path $Iw4) + '\ has no zone\ folder - point it at the MW2 install folder itself (the one with iw4mp.exe). A symlink made without Developer Mode does not work; use a junction (below).')
+    $Iw4 = Join-Path $GamesDir 'iw4'
+    if (Test-Path -LiteralPath $Iw4) {
+        $problems.Add((Show-Path $Iw4) + '\ has no zone\ folder - point it at the MW2 install folder itself (the one with main\ and zone\). A symlink made without Developer Mode does not work; use a junction (below).')
+    } else {
+        $problems.Add('missing: your Modern Warfare 2 (2009) MULTIPLAYER install - put the MW2 folder (the one with main\ and zone\) in ' + (Show-Path $GamesDir) + '\, as a copy or a junction')
+    }
 } else {
+    $Zone = Join-Path $Iw4 'zone'
     $common = Get-ChildItem -LiteralPath $Zone -Recurse -File -Filter 'common_mp.ff' -ErrorAction SilentlyContinue | Select-Object -First 1
     $zoneFf = Get-ChildItem -LiteralPath $Zone -Recurse -File -Filter ($ExportZone + '.ff') -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $common) {
@@ -328,7 +352,7 @@ if ($IwadArg) {
 } else {
     $Iwad = Select-Iwad $DoomDir
     if (-not $Iwad) {
-        $problems.Add('missing: a Doom IWAD in ' + (Show-Path $DoomDir) + "\ - doom2.wad, doom.wad, plutonia.wad, tnt.wad, doom1.wad (shareware) or Freedoom's freedoom1.wad / freedoom2.wad")
+        $problems.Add('missing: a Doom IWAD in ' + (Show-Path $GamesDir) + "\ - doom2.wad, doom.wad, plutonia.wad, tnt.wad, doom1.wad (shareware) or Freedoom's freedoom1.wad / freedoom2.wad")
     }
 }
 if ($problems.Count -gt 0) {
@@ -545,7 +569,16 @@ if (-not $reason) {
     Step 5 'Exporting your MW2 weapons to packs\mw2 (up to date; --reexport to redo)'
 } else {
     Step 5 "Exporting your MW2 weapons to packs\mw2 ($reason; about a minute)"
-    $env:DMW_MW2_GAMES = $GamesDir
+    # iw4L expects a games root with an "iw4" folder; make a junction if MW2 sits under another name.
+    $exportGames = $GamesDir
+    if ((Split-Path -Leaf $Iw4) -ne 'iw4' -or (Split-Path -Parent $Iw4) -ne $GamesDir) {
+        $exportGames = Join-Path $Root 'packs\.games-root'
+        $link = Join-Path $exportGames 'iw4'
+        New-Item -ItemType Directory -Force -Path $exportGames | Out-Null
+        if (Test-Path -LiteralPath $link) { cmd /c rmdir "$link" | Out-Null }
+        New-Item -ItemType Junction -Path $link -Target (Resolve-Path -LiteralPath $Iw4).Path | Out-Null
+    }
+    $env:DMW_MW2_GAMES = $exportGames
     $code = Invoke-Logged $Exporter @('--out', $Pack, '--zone', $ExportZone)
     switch ($code) {
         0 {

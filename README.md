@@ -77,11 +77,12 @@ You need your own copy of **MW2 (2009)** with multiplayer installed, and a **Doo
    cd IW4DOOM
    ```
 
-2. Put your files in `games/`:
+2. Drop your MW2 folder and your Doom WAD into `games/`:
 
    ```text
-   games/iw4/    your MW2 folder
-   games/doom/   your Doom WAD
+   games/
+     Call of Duty Modern Warfare 2/
+     doom2.wad
    ```
 
 3. Run it.

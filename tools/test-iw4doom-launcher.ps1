@@ -69,10 +69,10 @@ try {
     Expect '--help prints usage' 0 @('Usage: iw4doom.bat', '--setup-only') @() @('--help')
     Expect '-Help (PowerShell spelling) prints usage' 0 @('Usage: iw4doom.bat') @() @('-Help')
     Expect 'empty games dir names both missing items' 1 `
-        @('[1/8]', "missing: $Empty\iw4\", 'missing: a Doom IWAD', 'mklink /J', 'games\README.md') `
+        @('[1/8]', 'missing: your Modern Warfare 2', 'missing: a Doom IWAD', 'mklink /J', 'games\README.md') `
         @('[2/8]') @('--games', $Empty)
-    Expect 'Freedoom only names games\iw4 and the junction command' 1 `
-        @("missing: $Fd\iw4\", 'mklink /J') @('a Doom IWAD', '[2/8]') @('--games', $Fd)
+    Expect 'Freedoom only names the missing MW2 install and the junction command' 1 `
+        @('missing: your Modern Warfare 2', 'mklink /J') @('a Doom IWAD', '[2/8]') @('--games', $Fd)
     Expect '--list shows the IWAD' 0 @('freedoom1.wad  (default)') @() @('--games', $Fd, '--list')
     Expect '-List (PowerShell spelling) shows the IWAD' 0 @('freedoom1.wad  (default)') @() @('-Games', $Fd, '-List')
     Expect '--iwad with an unknown name' 1 @("no IWAD 'nope'") @() @('--games', $Fake, '--iwad', 'nope')
