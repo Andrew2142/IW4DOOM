@@ -17,3 +17,5 @@ session-*.md
 # Golden files for the pack format tests are JSON.
 !/crates/dmw_format/tests/golden/*.json
 !/crates/dmw_weapons/tests/golden/*.json
+/games/*
+!/games/README.md
