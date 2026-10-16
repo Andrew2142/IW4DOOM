@@ -23,7 +23,8 @@
   <a href="#which-doom-version">Which Doom</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#faq">FAQ</a> ·
-  <a href="#legal">Legal</a>
+  <a href="#legal">Legal</a> ·
+  <a href="#credits">Credits</a>
 </p>
 
 <!-- DEMO VIDEO: paste the GitHub user-attachments video URL here -->
@@ -195,7 +196,23 @@ You must own the games you use with it. IW4DOOM contains no game data and downlo
 
 The combined work is licensed **GPL-3.0-or-later** ([LICENSE](LICENSE)). The Doom engine code is GPL-2.0-or-later ([LICENSE-GPL-2.0](LICENSE-GPL-2.0)); code ported from iw4L is Apache-2.0 ([LICENSE-APACHE-2.0](LICENSE-APACHE-2.0)). See [NOTICE](NOTICE) and [docs/provenance.md](docs/provenance.md).
 
-Credits: [room](https://github.com/sunsided/room) (Rust doomgeneric port), [iw4L](https://github.com/vladtrc/iw4L) (MW2 runtime in Rust), [Chocolate Doom](https://github.com/chocolate-doom/chocolate-doom) and [doomgeneric](https://github.com/ozkl/doomgeneric), and [Freedoom](https://freedoom.github.io) for the IWADs used in tests and screenshots.
+
+## Credits
+
+IW4DOOM stands on the work of these open-source projects. If you enjoy it, go and support them: star their repositories, report bugs, contribute, or sponsor their authors.
+
+| Project | What it gives IW4DOOM |
+| --- | --- |
+| [**iw4L**](https://github.com/vladtrc/iw4L) by vladtrc | The heart of the gunplay. A Rust runtime for Modern Warfare 2 whose weapon logic (fire timing, spread, recoil, sway, ADS, reloads) and asset readers IW4DOOM builds on. |
+| [**room**](https://github.com/sunsided/room) by Markus Mayer (sunsided) | The engine. A complete Rust port of doomgeneric, which IW4DOOM forks and extends. |
+| [**doomgeneric**](https://github.com/ozkl/doomgeneric) by ozkl | The portable Doom base that room ports. |
+| [**Chocolate Doom**](https://github.com/chocolate-doom/chocolate-doom) | The faithful Doom source port doomgeneric is built from. |
+| [**Freedoom**](https://github.com/freedoom/freedoom) | Free, open game content used for development, tests and screenshots. |
+| [**DOOM**](https://github.com/id-Software/DOOM) by id Software | The original source release that made all of the above possible. |
+
+iw4L itself credits [OpenAssetTools](https://github.com/Laupetin/OpenAssetTools), [IW4x](https://github.com/iw4x/iw4x-client) and [KisakCOD](https://github.com/SwagSoftware/KisakCOD); they deserve your support too.
+
+Thanks also to the Rust ecosystem underneath: [wgpu](https://github.com/gfx-rs/wgpu), [winit](https://github.com/rust-windowing/winit), [rodio](https://github.com/RustAudio/rodio), [rustysynth](https://github.com/sinshu/rustysynth), [glam](https://github.com/bitshifter/glam-rs) and [Bevy](https://github.com/bevyengine/bevy) (used by the exporter through iw4L).
 
 ## Documentation
 
