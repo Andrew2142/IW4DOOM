@@ -11,13 +11,19 @@ use room::doom::r_draw::viewheight;
 
 use support::{find_wad, Frame, Harness, Rect};
 
-/// The status bar rows of `frame` with the max-ammo column (x 300..316, y 172..198) blanked:
+/// The status bar rows of `frame` with the max-ammo column (x 300..316, y 172..198) and the big
+/// AMMO number (x 0..48, y 168..192, sheet 12 shows the magazine) blanked:
 /// sheet 08 raises the ammo maxima in MW2 mode (360/64/12/300 instead of 200/50/50/300), the
 /// only status bar difference that is not the viewmodel's business.
 fn statusbar_without_maxima(frame: &Frame, view_h: usize) -> (Frame, Rect) {
     let mut f = frame.clone();
     for y in 172..198 {
         for x in 300..316 {
+            f.indices[y * 320 + x] = 0;
+        }
+    }
+    for y in 168..192 {
+        for x in 0..48 {
             f.indices[y * 320 + x] = 0;
         }
     }

@@ -128,13 +128,19 @@ fn parts(bg: u8) -> (Vec<usize>, Vec<usize>, Vec<usize>) {
     (skin, olive, grey)
 }
 
-/// The status bar rows of `frame` with the max-ammo column (x 300..316, y 172..198) blanked:
-/// sheet 08 raises the ammo maxima in MW2 mode (360/64/12/300 instead of 200/50/50/300), the
-/// only status bar difference that is not the viewmodel's business.
+/// The status bar rows of `frame` with the two MW2-owned number widgets blanked: the max-ammo
+/// column (x 300..316, y 172..198; sheet 08 raises the maxima to 360/64/12/300) and the big AMMO
+/// number (x 0..48, y 168..192; sheet 12 shows the magazine instead of the pool). Neither is the
+/// viewmodel's business; every other status bar pixel must match vanilla.
 fn statusbar_without_maxima(frame: &Frame, view_h: usize) -> (Frame, Rect) {
     let mut f = frame.clone();
     for y in 172..198 {
         for x in 300..316 {
+            f.indices[y * 320 + x] = 0;
+        }
+    }
+    for y in 168..192 {
+        for x in 0..48 {
             f.indices[y * 320 + x] = 0;
         }
     }
