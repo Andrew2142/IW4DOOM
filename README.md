@@ -28,11 +28,9 @@
   <a href="#credits">Credits</a>
 </p>
 
-<!-- DEMO VIDEO: paste the GitHub user-attachments video URL here -->
+https://github.com/user-attachments/assets/809e7243-ec85-4f29-b5a1-a28a8d34f7bd
 
-<p align="center">
-  <img src="docs/images/screenshot-fixture.png" alt="Freedoom E1M1 with the built-in placeholder gun and the dynamic crosshair" width="100%" />
-</p>
+
 <p align="center"><sub>Freedoom with the built-in placeholder gun. With your own MW2 install you get the real weapons.</sub></p>
 
 ## What is this?
