@@ -11,7 +11,7 @@ use dmw_format::{DmwWeaponId, Pack};
 use room::dmw::save::{parse, Trailer};
 use room::dmw::{mode, test_api};
 use room::doom::d_player::PlayerT;
-use room::doom::doomkeys::{KEY_FIRE, KEY_UPARROW, KEY_USE};
+use room::doom::doomkeys::KEY_FIRE;
 use room::doom::g_game::{consoleplayer, players, G_DeferedPlayDemo, G_LoadGame, G_SaveGame};
 use room::doom::p_inter::{P_DamageMobj, P_GiveWeapon};
 use room::doom::p_saveg::P_SaveGameFile;
@@ -268,7 +268,7 @@ fn integration_headless() {
     h.run_tics(20);
     h.teleport(OPEN_ROOM.x, OPEN_ROOM.y, OPEN_ROOM.angle_deg);
     h.run_tics(1);
-    h.hold(KEY_UPARROW, 35);
+    h.hold(b'w', 35);
     let v_vanilla = h.mobj().momy as f64;
     h.clear_events();
     tap(&mut h, b'4');
@@ -283,7 +283,7 @@ fn integration_headless() {
     h.run_tics(2);
     h.teleport(OPEN_ROOM.x, OPEN_ROOM.y, OPEN_ROOM.angle_deg);
     h.run_tics(1);
-    h.hold(KEY_UPARROW, 35);
+    h.hold(b'w', 35);
     let v_ads = h.mobj().momy as f64;
     h.mouse(0, 0, 0);
     h.run_tics(10);
@@ -367,7 +367,7 @@ fn integration_headless() {
     };
     h.run_tics(5);
     assert_eq!(h.player().playerstate, 1, "dead");
-    tap(&mut h, KEY_USE);
+    tap(&mut h, b'f');
     wait_for(&mut h, 200, "respawn", |h| {
         h.player().playerstate == 0 && h.level_time() < 5
     });

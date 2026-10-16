@@ -13,7 +13,7 @@ use room::dmw::hud::{self, crosshair_layout, CrosshairLayout, HitFeedback, HudCo
 use room::dmw::{audio, mode, test_api, with_state};
 use room::doom::d_main::D_Display;
 use room::doom::d_player::{consoleplayer, players, PlayerT};
-use room::doom::doomkeys::{KEY_FIRE, KEY_RSHIFT, KEY_UPARROW};
+use room::doom::doomkeys::{KEY_FIRE, KEY_RSHIFT};
 use room::doom::p_inter::P_GiveWeapon;
 use support::locations::OPEN_ROOM;
 use support::{assert_golden, Frame, Harness, Rect, SimEvent};
@@ -231,7 +231,7 @@ fn hud_headless() {
     h.teleport(OPEN_ROOM.x, OPEN_ROOM.y, OPEN_ROOM.angle_deg);
     h.run_tics(2);
     h.key(KEY_RSHIFT, true);
-    h.key(KEY_UPARROW, true);
+    h.key(b'w', true);
     wait_for(&mut h, 120, "sprinting", |_| {
         test_api::last_out().is_some_and(|o| o.sprinting)
     });
@@ -239,7 +239,7 @@ fn hud_headless() {
     let v = view(&h);
     let l = layout_of(&pack, rifle, &v);
     assert!(no_crosshair(&mut h, &l), "no crosshair while sprinting");
-    h.key(KEY_UPARROW, false);
+    h.key(b'w', false);
     h.key(KEY_RSHIFT, false);
     h.run_tics(60);
     h.teleport(OPEN_ROOM.x, OPEN_ROOM.y, OPEN_ROOM.angle_deg);

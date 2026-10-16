@@ -457,17 +457,23 @@ impl Harness {
     pub fn teleport(&mut self, x: f32, y: f32, angle_deg: f32) {
         let fx = (x * FRACUNIT as f32).round() as i32;
         let fy = (y * FRACUNIT as f32).round() as i32;
+        let angle = dmw_format::convert::degrees_to_bam(f64::from(angle_deg));
+        self.teleport_fixed(fx, fy, angle);
+    }
+
+    /// [`Harness::teleport`] with fixed-point coordinates and a BAM angle.
+    fn teleport_fixed(&mut self, fx: i32, fy: i32, angle: u32) {
         // SAFETY: the player's mobj is live while a level runs; `P_TeleportMove` relinks it.
         unsafe {
             let mo = players[console()].mo.cast::<Mobj>();
             assert!(!mo.is_null(), "teleport without a running level");
             let ok = P_TeleportMove(mo.cast(), fx, fy);
-            assert_ne!(ok, 0, "P_TeleportMove to ({x}, {y}) failed");
+            assert_ne!(ok, 0, "P_TeleportMove to ({fx}, {fy}) fixed failed");
             (*mo).z = (*mo).floorz;
             (*mo).momx = 0;
             (*mo).momy = 0;
             (*mo).momz = 0;
-            (*mo).angle = dmw_format::convert::degrees_to_bam(f64::from(angle_deg));
+            (*mo).angle = angle;
             players[console()].deltaviewheight = 0;
         }
     }
@@ -552,6 +558,12 @@ impl Harness {
     /// In MW2 mode the next tic's ownership sync gives every mapped MW2 weapon a full magazine
     /// (sheet 08 section 5.4); this runs that tic before returning.
     pub fn give_all(&mut self) {
+        // The cheat's letters are real key presses, and `d`, `a` and `f` are strafe right,
+        // strafe left and use: put the player back where they stood afterwards.
+        let (x, y, angle) = {
+            let m = self.mobj();
+            (m.x, m.y, m.angle)
+        };
         for c in b"idkfa" {
             self.key(*c, true);
             self.run_tics(1);
@@ -563,6 +575,7 @@ impl Harness {
             p.weaponowned.iter().all(|&w| w != 0) && p.armorpoints == 200,
             "IDKFA did not take effect (nightmare skill, netgame or a menu is open?)"
         );
+        self.teleport_fixed(x, y, angle);
     }
 
     /// Copy of `I_VideoBuffer` (320x200 palette indices) with the current palette.

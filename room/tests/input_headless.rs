@@ -15,7 +15,7 @@ mod support;
 use room::dmw::ext::{
     EXT_BT_ADS, EXT_BT_ATTACK, EXT_BT_HOLD_BREATH, EXT_BT_RELOAD, EXT_BT_SPRINT, EXT_BT_VALID,
 };
-use room::doom::doomkeys::{KEY_RSHIFT, KEY_UPARROW};
+use room::doom::doomkeys::KEY_RSHIFT;
 
 use support::Harness;
 
@@ -162,10 +162,10 @@ fn ext_buttons_scenario(h: &mut Harness) {
     h.run_tics(3);
 
     // Always-run: forward without Shift uses the fast table (0x32) in MW2 mode.
-    h.key(KEY_UPARROW, true);
+    h.key(b'w', true);
     h.run_tics(3);
     assert_eq!(cmd(h).0, 0x32, "MW2 mode always runs");
-    h.key(KEY_UPARROW, false);
+    h.key(b'w', false);
     h.run_tics(3);
 
     // The right button is ADS, not strafe: mouse X turns instead of strafing.
@@ -182,10 +182,10 @@ fn ext_buttons_scenario(h: &mut Harness) {
     // Vanilla: no always-run, and the right button strafes.
     h.set_mw2_mode(Some(false));
     h.run_tics(60);
-    h.key(KEY_UPARROW, true);
+    h.key(b'w', true);
     h.run_tics(3);
     assert_eq!(cmd(h).0, 0x19, "vanilla walks without Shift");
-    h.key(KEY_UPARROW, false);
+    h.key(b'w', false);
     h.run_tics(3);
     h.mouse(0, 0, 0b10);
     h.run_tics(2);

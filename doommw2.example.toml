@@ -73,6 +73,14 @@ grab_on_start = true
 # "uparrow", "downarrow", "leftarrow", "rightarrow", "home", "end", "pgup", "pgdn", "ins",
 # "del", "f1".."f10"), "none", or a Doom key code 0..255.
 # Mouse buttons: 0 left, 1 right, 2 middle, 3 mouse4, 4 mouse5 (up to 7), -1 unbound.
+# Movement and use (Doom's own variables). Arrow keys keep turning (key_left/key_right are
+# not configurable here). W/A/S/D move, F opens doors and presses switches. The automap's own
+# "follow" key is also F, but it only acts while the automap is open.
+key_up = "w"
+key_down = "s"
+key_strafeleft = "a"
+key_straferight = "d"
+key_use = "f"
 # Reload.
 key_dmw_reload = "r"
 # Aim down sights on a key (unbound; ADS is on the right mouse button).
