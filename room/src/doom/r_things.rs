@@ -965,6 +965,10 @@ pub unsafe extern "C" fn R_DrawPSprite(psp: *mut PspdefT) {
 ///   all be valid before this function is called.
 #[no_mangle]
 pub unsafe extern "C" fn R_DrawPlayerSprites() {
+    // DOOMMW2 (sheet 11): the software viewmodel replaces the psprites while MW2 owns the weapon.
+    if crate::dmw::hooks::draw_player_weapon() {
+        return;
+    }
     let mo = (*viewplayer).mo as *mut crate::doom::c_ffi::mobj_t;
     let sub = (*mo).subsector as *mut crate::doom::r_bsp::subsector_t;
     let sec = (*sub).sector;

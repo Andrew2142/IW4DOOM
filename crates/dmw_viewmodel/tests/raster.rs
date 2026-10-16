@@ -615,7 +615,7 @@ fn t11_7_fuzz_uses_colormap_6_of_neighbours() {
             pal: pal(),
             visibility: Visibility::default(),
         };
-        r.draw_mut(&mut t, &model, &mut params)
+        r.draw(&mut t, &model, &mut params)
     };
     assert!(stats.pixels > 100);
     assert_eq!(
@@ -646,14 +646,14 @@ fn t11_7_fuzz_uses_colormap_6_of_neighbours() {
     assert!(changed > 0);
     assert!(frame[VIEW_H as usize * W..].iter().all(|&p| p == SBAR));
 
-    // The shared-reference `draw` leaves fuzzpos alone but reports the new position.
+    // A draw from another start position writes its own end position back as well.
     let mut pos2 = 3usize;
     let mut f2 = base.clone();
     let mut t = target(&mut f2, VIEW_H);
     let s = r.draw(
         &mut t,
         &model,
-        &ViewmodelDrawParams {
+        &mut ViewmodelDrawParams {
             pose: &pose,
             hfov_deg: 65.0,
             light: LightParams::Fuzz {
@@ -664,7 +664,8 @@ fn t11_7_fuzz_uses_colormap_6_of_neighbours() {
             visibility: Visibility::default(),
         },
     );
-    assert_eq!(r.last_fuzzpos(), Some((3 + s.pixels as usize) % 50));
+    assert_eq!(pos2, (3 + s.pixels as usize) % 50);
+    assert_eq!(r.last_fuzzpos(), Some(pos2));
 }
 
 // ---------------------------------------------------------------- winding
@@ -782,7 +783,7 @@ fn degenerate_targets_draw_nothing() {
         let s = r.draw(
             &mut t,
             &model,
-            &ViewmodelDrawParams {
+            &mut ViewmodelDrawParams {
                 pose: &pose,
                 hfov_deg: fov,
                 light: LightParams::Fixed { colormap: 0 },

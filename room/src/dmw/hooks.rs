@@ -501,7 +501,14 @@ pub(crate) fn on_view_size_changed() {
 
 /// `R_DrawPlayerSprites`, start: software viewmodel. `true` = skip the vanilla psprites.
 pub(crate) fn draw_player_weapon() -> bool {
-    false
+    if !mode::weapons_active() {
+        return false;
+    }
+    guarded(
+        "draw_player_weapon",
+        false,
+        super::viewmodel::draw_player_weapon,
+    )
 }
 
 /// `D_Display`, right after `R_RenderPlayerView`: crosshair, hitmarker, scope overlay.

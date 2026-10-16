@@ -32,3 +32,9 @@ code. A failing comparison leaves `<name>.actual.png` and `<name>.diff.png` in
 | `hud_crosshair_rest.png` | `room/tests/hud_headless.rs` (T12.2) | 320x168 view at `OPEN_ROOM`, fixture rifle at rest, hip: four 3-pixel crosshair arms around the view centre at the idle spread |
 | `hud_crosshair_bloom.png` | `room/tests/hud_headless.rs` (T12.2) | same spot after ten hip shots: arms pushed outward by the bloomed spread, world shifted by the view kick |
 | `hud_scope_fixture.png` | `room/tests/hud_headless.rs` (T12.5) | same spot, fixture sniper fully aimed: scope overlay (black outside an ellipse that is a circle at 4:3, dark ring, reticle lines), world visible in the clear centre |
+| `viewmodel_e1m1_t60.png` | `room/tests/viewmodel_headless.rs` (T11.9) | 320x200 E1M1 start after 60 tics with `-fixturepack`: the fixture pistol drawn by the software rasterizer in the lower right (grey box gun pointing into the screen, olive box in front of the muzzle, left hand at the bottom), status bar untouched |
+| `e1m1_t60_statusbar.png` | `viewmodel_headless.rs` and `viewmodel_nomw2_headless.rs` (T11.9) | 320x32 status bar rows of that frame, max-ammo column (x 300..316) blanked; both the `-fixturepack` and the `-nomw2` run must match it |
+| `viewmodel_fixture_idle.png` | `viewmodel_headless.rs` (T11.8) | 320x168 fixture pistol alone (engine draw path, COLORMAP level 8, directional shading) on a flat background, idle pose |
+| `viewmodel_fixture_fire.png` | `viewmodel_headless.rs` (T11.8) | same, on the firing tic: Freedoom `PISFA0` flash patch fullbright at `tag_flash` |
+| `viewmodel_fixture_reload.png` | `viewmodel_headless.rs` (T11.8) | same, 14 tics into the reload: gun pitched about 10 degrees muzzle-down, magazine dropped out of view |
+| `viewmodel_fixture_ads.png` | `viewmodel_headless.rs` (T11.8) | same, full ADS: gun centred below the aim point, top face receding to the muzzle box at the centre |

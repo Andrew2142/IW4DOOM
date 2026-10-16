@@ -90,3 +90,50 @@ pub fn muzzle() -> (u8, u8) {
 pub fn pack_loaded() -> bool {
     with_state(|s| s.pack.is_some()).unwrap_or(false)
 }
+
+/// Light mode used by the last `draw_player_weapon` (sheet 11).
+pub fn viewmodel_last_light() -> Option<super::viewmodel::Light> {
+    with_state(|s| s.viewmodels.last_light).flatten()
+}
+
+/// Stats of the last viewmodel draw (hook or [`render_viewmodel`]).
+pub fn viewmodel_last_stats() -> Option<dmw_viewmodel::DrawStats> {
+    with_state(|s| s.viewmodels.last_stats).flatten()
+}
+
+/// The held weapon rendered through the hook's path into a fresh 320x200 buffer of
+/// `background` with `light` (sheet 11 T11.8). `None` when MW2 does not own the weapon.
+pub fn render_viewmodel(
+    background: u8,
+    light: super::viewmodel::Light,
+) -> Option<(Vec<u8>, dmw_viewmodel::DrawStats)> {
+    super::viewmodel::render_isolated(background, light)
+}
+
+/// The IWAD palette tables built at engine init.
+pub fn palette() -> Option<std::sync::Arc<dmw_viewmodel::PaletteTables>> {
+    with_state(|s| s.palette.clone()).flatten()
+}
+
+/// Every palette index a prepared texture of weapon `id` can produce under any COLORMAP light
+/// level 0..=31 (sheet 11 T11.9). Empty when the weapon is not prepared.
+pub fn viewmodel_palette_set(id: dmw_format::DmwWeaponId) -> std::collections::BTreeSet<u8> {
+    with_state(|s| {
+        let mut out = std::collections::BTreeSet::new();
+        let (Some(pal), Some(entry)) = (s.palette.as_ref(), s.viewmodels.entry(id)) else {
+            return out;
+        };
+        let mut texels = std::collections::BTreeSet::new();
+        for tex in entry.prepared.textures() {
+            for mip in &tex.mips {
+                texels.extend(mip.index.iter().copied());
+            }
+        }
+        texels.insert(pal.nearest([128, 128, 128]));
+        for map in pal.colormaps.iter().take(32) {
+            out.extend(texels.iter().map(|&t| map[usize::from(t)]));
+        }
+        out
+    })
+    .unwrap_or_default()
+}

@@ -392,23 +392,10 @@ impl Rasterizer {
     /// Allocates only when a buffer must grow (first draw of a model with more vertices than
     /// any before, or a view window larger than 320x200).
     ///
-    /// With [`LightParams::Fuzz`] the advanced fuzz position cannot be written back through the
-    /// shared `params` reference; it is available from [`Rasterizer::last_fuzzpos`]. Use
-    /// [`Rasterizer::draw_mut`] to have it written to `fuzzpos` directly (sheet 11 section 11).
+    /// With [`LightParams::Fuzz`] the advanced fuzz position is written back into `fuzzpos`,
+    /// keeping the effect continuous with the world's fuzz (00 Revision 8); it is also
+    /// available from [`Rasterizer::last_fuzzpos`].
     pub fn draw(
-        &mut self,
-        target: &mut DrawTarget<'_>,
-        model: &PreparedViewmodel,
-        params: &ViewmodelDrawParams<'_>,
-    ) -> DrawStats {
-        let (stats, pos) = self.draw_impl(target, model, params);
-        self.last_fuzzpos = pos;
-        stats
-    }
-
-    /// Like [`Rasterizer::draw`], and with [`LightParams::Fuzz`] also stores the advanced fuzz
-    /// position into `fuzzpos`, keeping the effect continuous with the world's fuzz.
-    pub fn draw_mut(
         &mut self,
         target: &mut DrawTarget<'_>,
         model: &PreparedViewmodel,
