@@ -2488,6 +2488,7 @@ version = "0.1.0"
 dependencies = [
  "glam",
  "hound",
+ "log",
  "png 0.17.16",
  "postcard",
  "serde",
