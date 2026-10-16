@@ -25,15 +25,17 @@ tasks:
       - cargo fmt -p dmw_format -p dmw_weapons -p dmw_viewmodel
 
   test:
-    desc: Run all tests; demo_playthrough only when doom1.wad is a real WAD
+    desc: Run all tests; demo_playthrough only when the shareware doom1.wad is present
     env:
       RUST_BACKTRACE: "1"
     cmds:
       - cmd: |
-          if [ "$(head -c 4 doom1.wad 2>/dev/null)" = "IWAD" ]; then
+          wad=games/doom/doom1.wad
+          [ "$(head -c 4 "$wad" 2>/dev/null)" = "IWAD" ] || wad="${DMW_DOOM1_WAD:-}"
+          if [ -n "$wad" ] && [ "$(head -c 4 "$wad" 2>/dev/null)" = "IWAD" ]; then
             cargo test --workspace --exclude c2rust-intermediate
           else
-            echo "task test: doom1.wad is missing or a Git LFS pointer, skipping demo_playthrough (see README, shareware doom1.wad)"
+            echo "task test: no shareware doom1.wad at games/doom/doom1.wad or DMW_DOOM1_WAD, skipping demo_playthrough (README: Which Doom version)"
             cargo test --workspace --exclude c2rust-intermediate -- --skip demo_playthrough
           fi
 

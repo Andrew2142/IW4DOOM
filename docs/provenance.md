@@ -24,7 +24,7 @@ Handled after the import commit:
 
 - room's `docs/specs/` and `docs/plans/` files moved to `docs/room-upstream/` so they do not mix with the DOOMMW2 specs.
 - `Taskfile.dist.yaml` replaced by `Taskfile.yml`; `README.md` rewritten.
-- `doom1.wad` and `soundfonts/*.sf2` are Git LFS pointers upstream and were copied as pointers. `.gitattributes` keeps the LFS rules.
+- `doom1.wad` and `soundfonts/*.sf2` are Git LFS pointers upstream and were copied as pointers. Sheet 14 removed both pointer files, the soundfont README and `.gitattributes` (LFS rules only): the repository uses no Git LFS. `demo_playthrough` reads `games/doom/doom1.wad` (else `DMW_DOOM1_WAD`) and music uses `-sf2 <path>` or `games/soundfont.sf2`.
 
 ## Chosen dependency versions
 

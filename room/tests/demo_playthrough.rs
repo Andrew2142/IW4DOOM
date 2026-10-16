@@ -729,13 +729,27 @@ fn capture_snapshot(tic: usize) -> Snapshot {
 // WAD discovery
 // ---------------------------------------------------------------------------
 
-fn find_wad() -> PathBuf {
+/// The shareware IWAD the BASELINE was recorded with: `games/doom/doom1.wad` (the user's game
+/// files folder, sheet 14 section 5.1), else the path in `DMW_DOOM1_WAD`. Only a real WAD
+/// counts (first four bytes `IWAD`). `task test` skips this test with a notice when neither is
+/// present (sheet 02 section 5.4); run directly, the test fails and names both places.
+fn find_wad() -> Option<PathBuf> {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let wad = manifest
-        .join("../doom1.wad")
-        .canonicalize()
-        .unwrap_or_else(|_| manifest.parent().unwrap_or(&manifest).join("doom1.wad"));
-    wad
+    let repo = manifest.parent().unwrap_or(&manifest).to_path_buf();
+    let candidates = [
+        Some(repo.join("games/doom/doom1.wad")),
+        std::env::var_os("DMW_DOOM1_WAD").map(PathBuf::from),
+    ];
+    candidates.into_iter().flatten().find(|p| is_iwad(p))
+}
+
+fn is_iwad(path: &std::path::Path) -> bool {
+    use std::io::Read;
+    let mut magic = [0u8; 4];
+    std::fs::File::open(path)
+        .and_then(|mut f| f.read_exact(&mut magic))
+        .map(|()| &magic == b"IWAD")
+        .unwrap_or(false)
 }
 
 // ---------------------------------------------------------------------------
@@ -749,13 +763,12 @@ fn demo_playthrough() {
 
     let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
         .try_init();
-    let wad_path = find_wad();
-    if !wad_path.exists() {
+    let Some(wad_path) = find_wad() else {
         panic!(
-            "doom1.wad not found at {}; the test requires the shareware IWAD",
-            wad_path.display()
+            "no shareware doom1.wad (a real IWAD) at games/doom/doom1.wad or in DMW_DOOM1_WAD; \
+             the test requires it (README: Which Doom version)"
         );
-    }
+    };
 
     let wad_str = wad_path.to_str().expect("WAD path is not valid UTF-8");
 

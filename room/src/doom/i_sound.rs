@@ -270,14 +270,15 @@ pub extern "C" fn I_PrecacheSounds(_sounds: *mut c_void, _num_sounds: c_int) {}
 
 /// Locate a `.sf2` SoundFont file for music playback.
 ///
-/// Resolution order:
-///  1. `-sf2 <path>` command-line argument (printed warning if missing).
-///  2. Bundled SC-55 SoundFont under `soundfonts/...` relative to CWD.
-///  3. Same path relative to the directory holding the executable.
+/// Resolution order (DOOMMW2 sheet 14 section 5.4):
+///  1. `-sf2 <path>` command-line argument (warning if the file is missing).
+///  2. `games/soundfont.sf2`, the user's game files folder, relative to the CWD.
+///  3. The same path relative to the repository that holds the executable
+///     (`<repo>/target/<profile>/<exe>`).
 ///
-/// Returns `None` and logs a warning if no font is found - music will
-/// then play silently. Not present in the C source: chocolate-doom
-/// uses an external timidity config instead.
+/// Returns `None` and logs one `info` line if no font is found - music is
+/// then off. Not present in the C source: chocolate-doom uses an external
+/// timidity config instead.
 fn find_soundfont_path() -> Option<std::path::PathBuf> {
     unsafe {
         let p = M_CheckParmWithArgs(c"-sf2".as_ptr().cast_mut(), 1);
@@ -286,7 +287,7 @@ fn find_soundfont_path() -> Option<std::path::PathBuf> {
             if !arg.is_null() {
                 let s = std::ffi::CStr::from_ptr(arg).to_string_lossy();
                 let path = std::path::PathBuf::from(s.as_ref());
-                if path.exists() {
+                if path.is_file() {
                     return Some(path);
                 }
                 log::warn!("-sf2 path not found: {}", path.display());
@@ -294,21 +295,21 @@ fn find_soundfont_path() -> Option<std::path::PathBuf> {
         }
     }
 
-    let bundled = std::path::Path::new("soundfonts/SC55Soundfont-1.2b/SC-55 SoundFont v1.2b.sf2");
-    if bundled.exists() {
-        return Some(bundled.to_path_buf());
+    let games = std::path::Path::new("games/soundfont.sf2");
+    if games.is_file() {
+        return Some(games.to_path_buf());
     }
 
     if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            let p = dir.join(bundled);
-            if p.exists() {
+        if let Some(repo) = exe.parent().and_then(|d| d.parent()).and_then(|d| d.parent()) {
+            let p = repo.join(games);
+            if p.is_file() {
                 return Some(p);
             }
         }
     }
 
-    log::warn!("No soundfont found. Use -sf2 <path> to specify one. Music will be silent.");
+    log::info!("No soundfont (-sf2 <path> or games/soundfont.sf2); music is off.");
     None
 }
 
