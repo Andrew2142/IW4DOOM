@@ -1,0 +1,62 @@
+[
+  {
+    "action": "Some(FirstRaise)",
+    "phase": "raise",
+    "state": "Raising { first: true, quick: false }",
+    "tic": 0
+  },
+  {
+    "action": "None",
+    "phase": "raise",
+    "state": "Ready",
+    "tic": 35
+  },
+  {
+    "action": "Some(Fire)",
+    "phase": "fire",
+    "state": "Firing",
+    "tic": 60
+  },
+  {
+    "action": "None",
+    "phase": "fire",
+    "state": "Ready",
+    "tic": 63
+  },
+  {
+    "action": "Some(Fire)",
+    "phase": "fire",
+    "state": "Firing",
+    "tic": 95
+  },
+  {
+    "action": "None",
+    "phase": "fire",
+    "state": "Ready",
+    "tic": 98
+  },
+  {
+    "action": "Some(Fire)",
+    "phase": "fire",
+    "state": "Firing",
+    "tic": 130
+  },
+  {
+    "action": "None",
+    "phase": "fire",
+    "state": "Ready",
+    "tic": 133
+  },
+  {
+    "action": "Some(Reload)",
+    "phase": "reload",
+    "state": "Reloading { empty: false }",
+    "tic": 165
+  },
+  {
+    "action": "None",
+    "phase": "reload",
+    "state": "Ready",
+    "tic": 242
+  }
+]

@@ -3,8 +3,10 @@
 //! exercised, with notetracks on the reload and bolt clips.
 //!
 //! Conventions, matching how `xmodel_runtime` uses clips:
-//! - A track value replaces the bone's local bind value (bind rotations are identity), so
-//!   translation keys are absolute local positions (the bind position plus an offset).
+//! - A rotation key replaces the bone's local bind rotation (bind rotations are identity).
+//! - A translation key is an offset added to the bone's local bind translation
+//!   (`xmodel_runtime::DObj::compose` uses `bind + key * scale`), so a key of zero keeps the
+//!   bind position.
 //! - Rotation about +y by a positive angle pitches the muzzle down (MW2 pitch is positive
 //!   down); recoil therefore uses negative angles.
 //! - `NotifyData::time` is the fraction of the clip duration, as `AnimClip` stores it.
@@ -42,13 +44,12 @@ fn quat_z(deg: f32) -> [f32; 4] {
     [0.0, 0.0, h.sin(), h.cos()]
 }
 
+/// No translation offset: the bone stays at its bind position.
+const AT_BIND: [f32; 3] = [0.0; 3];
+
 /// Hip position of the gun bone, local to `tag_view`.
 fn gun_bind() -> [f32; 3] {
     bind_translation(GUN).unwrap_or([0.0; 3])
-}
-
-fn mag_bind() -> [f32; 3] {
-    bind_translation(MAG).unwrap_or([0.0; 3])
 }
 
 fn add(a: [f32; 3], d: [f32; 3]) -> [f32; 3] {
@@ -132,8 +133,13 @@ impl Clip {
     }
 }
 
-/// Breathing idle: 2 s loop, 1 degree of pitch on the gun, with constant wrist rotations and a
-/// constant `tag_view` translation (covers the `*Constant` variants).
+/// Breathing idle: 2 s loop, 1 degree of pitch on the right wrist, a constant left-wrist
+/// rotation, a constant (identity) magazine rotation and a constant `tag_view` translation
+/// (covers the `*Constant` variants).
+///
+/// The idle leaves `j_gun` alone: `DObj::calc_anim` averages a bone's translation over every
+/// weighted clip that has a track for it, so an idle track on the gun would pull the gun a
+/// third of the way back from the ADS pose (idle, AdsUp and AdsDown all weigh 1 at full ADS).
 fn idle() -> Clip {
     let keys: Vec<(u16, [f32; 4])> = (0..=60u16)
         .map(|i| {
@@ -144,15 +150,15 @@ fn idle() -> Clip {
         })
         .collect();
     Clip::new("idle", 30.0, 60, true)
-        .rot(GUN, rot_keys(&keys, false))
-        .rot("j_wrist_ri", RotationData::HalfConstant(quat_z(2.0)))
+        .rot("j_wrist_ri", rot_keys(&keys, false))
+        .rot(MAG, RotationData::HalfConstant(quat_z(0.0)))
         .rot("j_wrist_le", RotationData::FullConstant(quat_z(-2.0)))
         .trans("tag_view", TranslationData::Constant([0.0; 3]))
 }
 
 /// 0.15 s fire kick: gun pitches up 3 degrees and slides back 1.5 in, then returns.
 fn fire() -> Clip {
-    let g = gun_bind();
+    let g = AT_BIND;
     Clip::new("fire", 40.0, 6, false)
         .track(
             GUN,
@@ -172,7 +178,7 @@ fn fire() -> Clip {
 
 /// Fire that ends with the gun held back (slide lock / last round).
 fn last_shot() -> Clip {
-    let g = gun_bind();
+    let g = AT_BIND;
     Clip::new("last_shot", 40.0, 8, false).track(
         GUN,
         rot_keys(
@@ -193,7 +199,7 @@ fn last_shot() -> Clip {
 /// Bolt cycle (sniper): the gun slides back 3 in and returns. Notetracks `bolt_back` and
 /// `bolt_forward`.
 fn rechamber() -> Clip {
-    let g = gun_bind();
+    let g = AT_BIND;
     Clip::new("rechamber", 30.0, 33, false)
         .trans(
             GUN,
@@ -214,7 +220,7 @@ fn rechamber() -> Clip {
 /// Magazine change: the magazine drops 8 in (frame 9, 0.3 s) and returns, inserted from frame
 /// 21 (0.7 s) to frame 33. Notetracks `mag_out` at 0.3 s and `mag_in` at 0.7 s of the 2.0 s clip.
 fn reload() -> Clip {
-    let m = mag_bind();
+    let m = AT_BIND;
     let low = add(m, [0.0, 0.0, -8.0]);
     Clip::new("reload", 30.0, 60, false)
         .trans(
@@ -240,8 +246,8 @@ fn reload() -> Clip {
 /// Empty reload: as [`reload`] over 2.4 s, then the charging handle (`bolt_back`,
 /// `bolt_forward`).
 fn reload_empty() -> Clip {
-    let m = mag_bind();
-    let g = gun_bind();
+    let m = AT_BIND;
+    let g = AT_BIND;
     let low = add(m, [0.0, 0.0, -8.0]);
     Clip::new("reload_empty", 30.0, 72, false)
         .trans(
@@ -277,7 +283,7 @@ fn reload_start() -> Clip {
 
 /// Shotgun shell insert (0.6 s), played once per shell.
 fn reload_insert() -> Clip {
-    let m = mag_bind();
+    let m = AT_BIND;
     Clip::new("reload_insert", 30.0, 18, false)
         .rot(GUN, RotationData::FullConstant(quat_y(15.0)))
         .trans(
@@ -296,7 +302,7 @@ fn reload_end() -> Clip {
 }
 
 fn raise_like(name: &str, frames: u16, from_deg: f32, to_deg: f32) -> Clip {
-    let g = gun_bind();
+    let g = AT_BIND;
     let down = add(g, [0.0, 0.0, -8.0]);
     let (a, b) = if from_deg > to_deg {
         (down, g)
@@ -334,23 +340,25 @@ fn sprint_out() -> Clip {
 
 /// 0.25 s: the gun moves from the hip pose to the centred ADS pose (10, 0, -3) in `tag_view`
 /// space.
+/// Offset from the gun's hip bind position to the centred ADS position (10, 0, -3).
+fn ads_offset() -> [f32; 3] {
+    let g = gun_bind();
+    [10.0 - g[0], -g[1], -3.0 - g[2]]
+}
+
 fn ads_up() -> Clip {
-    Clip::new("ads_up", 20.0, 5, false).trans(
-        GUN,
-        trans_keys(&[(0, gun_bind()), (5, [10.0, 0.0, -3.0])], false),
-    )
+    Clip::new("ads_up", 20.0, 5, false)
+        .trans(GUN, trans_keys(&[(0, AT_BIND), (5, ads_offset())], false))
 }
 
 fn ads_down() -> Clip {
-    Clip::new("ads_down", 20.0, 5, false).trans(
-        GUN,
-        trans_keys(&[(0, [10.0, 0.0, -3.0]), (5, gun_bind())], false),
-    )
+    Clip::new("ads_down", 20.0, 5, false)
+        .trans(GUN, trans_keys(&[(0, ads_offset()), (5, AT_BIND)], false))
 }
 
 /// 0.6 s lunge: the gun thrusts 6 in forward and comes back.
 fn melee() -> Clip {
-    let g = gun_bind();
+    let g = AT_BIND;
     Clip::new("melee", 30.0, 18, false)
         .rot(
             GUN,

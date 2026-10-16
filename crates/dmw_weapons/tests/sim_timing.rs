@@ -10,17 +10,31 @@ use dmw_format::consts::{TICRATE, tic_msec, tic_server_time};
 use dmw_weapons::{SimEvent, TicButtons};
 use weapon_iw4::{WeaponCmd, WeaponHandState, WeaponState, WeaponTickEvent, weapon_hands};
 
+/// The bridge's overshoot carry (sheet 07 §11 item 16): a shot fired on the tic in which the
+/// previous cycle ran out starts its cycle shortened by the overrun.
+fn carried_weapon_time(fire_time: i32, firing_before: bool, pre: i32, msec: i32) -> i32 {
+    if firing_before && pre > 0 && pre <= msec {
+        (fire_time.max(1) - (msec - pre)).max(1)
+    } else {
+        fire_time.max(1)
+    }
+}
+
 /// Tics (relative to the first held tic) at which a weapon with `fire_time` fires when the
-/// trigger is held from `start`: `weapon_time` counts down by `tic_msec` and the gun fires on
-/// the tic it reaches 0 (weapon_iw4 does not carry the remainder over).
+/// trigger is held from `start`: `weapon_time` counts down by `tic_msec`, the gun fires on the
+/// tic it reaches 0, and the bridge carries the overrun into the next cycle.
 fn predicted_auto_shots(start: u32, tics: u32, fire_time: i32) -> Vec<u32> {
     let mut out = Vec::new();
     let mut weapon_time = 0;
+    let mut firing = false;
     for i in 0..tics {
-        weapon_time = (weapon_time - tic_msec(start + i)).max(0);
+        let msec = tic_msec(start + i);
+        let pre = weapon_time;
+        weapon_time = (weapon_time - msec).max(0);
         if weapon_time == 0 {
             out.push(i);
-            weapon_time = fire_time;
+            weapon_time = carried_weapon_time(fire_time, firing, pre, msec);
+            firing = true;
         }
     }
     out
@@ -41,13 +55,44 @@ fn t7_1_fire_rate_full_auto_rifle() {
     let fire_time = rig.facts(RIFLE).combat.fire_time_ms;
     assert_eq!(fire_time, 86);
     assert_eq!(shot_tics, predicted_auto_shots(start, 35, fire_time));
-    // weapon_iw4 clamps weapon_time at 0 (no carry-over, tick.rs:985-987), so 86 ms rounds up to
-    // 3 or 4 tics and 35 tics hold 10 shots, not the 1000/86 = 11.6 the sheet estimated
-    // (recorded in sheet 07 section 11).
-    assert_eq!(shot_tics.len(), 10, "shots in 35 tics");
+    // With the overrun carried, shots fall in the tics containing 0, 86, ..., 946 ms: 12 shots
+    // in the 1000 ms from the first (1000 / 86 = 11.6 per second).
+    assert_eq!(shot_tics.len(), 12, "shots in 35 tics");
     check_golden(
         "sim_fire_rifle.json",
         &serde_json::json!({ "weapon": "fixture_rifle", "first_tic": start, "shot_tics": shot_tics }),
+    );
+}
+
+/// Sheet 07 §11 item 16: over 10 s of held fire the average rate is 1000 / fire_time within 1%.
+#[test]
+fn t7_1b_average_fire_rate_matches_fire_time() {
+    let mut rig = Rig::new();
+    rig.raise(RIFLE);
+    let fire_time = rig.facts(RIFLE).combat.fire_time_ms;
+    let mut shot_times = Vec::new();
+    for _ in 0..(10 * TICRATE) {
+        // Keep the magazine and pool full so no reload interrupts the burst.
+        rig.sim.inventory_mut().set_magazine(RIFLE, 30);
+        rig.pools[0] = 200;
+        let t = rig.tic;
+        if shots(&rig.step(RIFLE, attack())) > 0 {
+            shot_times.push(tic_server_time(t) + tic_msec(t));
+        }
+    }
+    let first = *shot_times.first().unwrap();
+    let last = *shot_times.last().unwrap();
+    let rate = (shot_times.len() - 1) as f64 * 1000.0 / f64::from(last - first);
+    let want = 1000.0 / f64::from(fire_time);
+    assert!(
+        ((rate - want) / want).abs() < 0.01,
+        "{} shots, {rate:.3}/s vs {want:.3}/s",
+        shot_times.len()
+    );
+    let per_10s = shot_times.len() as f64;
+    assert!(
+        ((per_10s / 10.0 - want) / want).abs() < 0.01,
+        "{per_10s} shots in 10 s vs {want:.3}/s"
     );
 }
 
@@ -299,6 +344,7 @@ fn t7_14_weaponstate_parity_with_weapon_iw4() {
     let mut old_buttons = 0;
     let mut used = false;
     let mut direct = Vec::new();
+    let fire_time = facts.fire_time_ms;
     for i in 0..TICS {
         let (fire, rl) = parity_script(i);
         let buttons = (u32::from(fire) * playerstate_iw4::buttons::ATTACK)
@@ -316,7 +362,22 @@ fn t7_14_weaponstate_parity_with_weapon_iw4() {
             switch_first_raise_time_ms: if used { 0 } else { facts.first_raise_time_ms },
             ..WeaponCmd::default()
         };
+        let (pre_state, pre_time) = (hands[0].weaponstate, hands[0].weapon_time);
         let events = weapon_hands(&mut hands, &facts, &mut cmd, 0);
+        // The bridge's overshoot carry, applied to the direct stream too.
+        if events
+            .iter()
+            .flatten()
+            .any(|(_, e)| matches!(e, WeaponTickEvent::ShotAccepted { .. }))
+            && hands[0].weapon_time == fire_time.max(1)
+        {
+            hands[0].weapon_time = carried_weapon_time(
+                fire_time,
+                pre_state == WeaponState::Firing as i32,
+                pre_time,
+                msec,
+            );
+        }
         if events
             .iter()
             .flatten()

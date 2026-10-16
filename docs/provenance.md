@@ -55,6 +55,11 @@ Mirrors the table in `NOTICE`.
 | `crates/dmw_weapons/src/spread.rs` | iw4L crates/sim/src/combat.rs (`spread_direction_on_plane`, lines 1125-1150) at fc3d8ea |
 | `crates/dmw_weapons/src/sim.rs` | iw4L crates/sim/src/combat.rs (`advance_weapon_command` call sequence and `WeaponCmd` construction) and crates/sim/src/step.rs (`pmove_context` values) at fc3d8ea |
 | `room/src/dmw/ballistics.rs` | iw4L crates/sim/src/bullet.rs (`bullet_damage_at_distance`) at fc3d8ea |
+| `crates/dmw_weapons/src/clip_scheduler.rs` | iw4L crates/asset_anim/src/clip_scheduler.rs (`ClipScheduler`) at fc3d8ea |
+| `crates/dmw_weapons/src/controller.rs` | iw4L crates/render_anim/src/anim/viewmodel_controller.rs (`ViewmodelController`) and crates/asset_game/src/weapon_animations.rs (`WeaponAnimSlot`, `AdsOverlayConvention`) at fc3d8ea |
+| `crates/dmw_weapons/src/anim.rs` | iw4L crates/render_anim/src/anim/fpv.rs (`tick_equipped_fpv_with_extra_events`, `observe_weap_anim_edge_on`) at fc3d8ea |
+| `crates/dmw_weapons/src/pose.rs` | iw4L crates/render_anim/src/anim/fpv_rig.rs (`PreparedFpvRig::pose_clips`) at fc3d8ea |
+| `crates/dmw_weapons/src/placement.rs` | iw4L crates/render_anim/src/occupancy/fpv_present.rs (`apply_fpv_placement`, lines 1032-1250) and crates/render_anim/src/occupancy/view_kick.rs (`iw_view_placement_to_bevy_camera_local`) at fc3d8ea |
 
 ## Adapted from room (GPL)
 
