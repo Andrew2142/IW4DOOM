@@ -128,7 +128,7 @@ pub fn render(
     r.draw(
         &mut t,
         model,
-        &ViewmodelDrawParams {
+        &mut ViewmodelDrawParams {
             pose,
             hfov_deg: 65.0,
             light,

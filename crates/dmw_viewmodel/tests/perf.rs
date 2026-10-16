@@ -141,7 +141,7 @@ fn t11_10_twenty_k_triangles_budget_and_no_allocations() {
         r.draw(
             &mut t,
             &model,
-            &dmw_viewmodel::ViewmodelDrawParams {
+            &mut dmw_viewmodel::ViewmodelDrawParams {
                 pose: &pose,
                 hfov_deg: 65.0,
                 light: light(),
@@ -197,7 +197,7 @@ fn t11_10_twenty_k_triangles_budget_and_no_allocations() {
         r.draw(
             &mut t,
             &fixture,
-            &dmw_viewmodel::ViewmodelDrawParams {
+            &mut dmw_viewmodel::ViewmodelDrawParams {
                 pose: &fpose,
                 hfov_deg: 65.0,
                 light: light(),
