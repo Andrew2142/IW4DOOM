@@ -30,6 +30,16 @@ pub struct Loaded {
     pub zone: String,
     pub common_zone: Option<String>,
     pub prepared: assets::PreparedMatch,
+    /// English strings: `prepared.strings`, or (when the match load leaves it empty) the MP
+    /// localized zones read with `asset_game::load_mp_localized_strings`.
+    pub strings: asset_game::LocalizeCatalog,
+    /// The match's full sound bank. `prepared.sound` holds only the map zone's aliases; the
+    /// session composes it with the runtime zones (`common_mp`, `localized_common_mp`, ...) at
+    /// match start. The exporter builds the same composition with
+    /// `asset_audio::load_mp_sound_bank`.
+    pub sounds: Result<asset_audio::SoundCatalog, String>,
+    /// Sound zones that could not be read (`LoadedSoundBank::gap_lines`).
+    pub sound_gaps: Vec<String>,
     pub load_ms: u128,
 }
 
@@ -120,11 +130,26 @@ pub fn load(games: GamesRoot, zone: &str) -> Result<Loaded, LoadError> {
             return Err(LoadError::Refused(format!("map walk refused: {reason}")));
         }
     };
+    let strings = if prepared.strings.is_empty() {
+        asset_game::load_mp_localized_strings(&games, zone).unwrap_or_default()
+    } else {
+        prepared.strings.clone()
+    };
+    let (sounds, sound_gaps) = match asset_audio::load_mp_sound_bank(&games, zone) {
+        Ok(bank) => {
+            let gaps = bank.gap_lines();
+            (Ok(bank.catalog), gaps)
+        }
+        Err(e) => (Err(e), Vec::new()),
+    };
     Ok(Loaded {
         games,
         zone: found.zone_name,
         common_zone,
         prepared,
+        strings,
+        sounds,
+        sound_gaps,
         load_ms: started.elapsed().as_millis(),
     })
 }

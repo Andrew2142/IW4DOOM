@@ -38,9 +38,6 @@ pub struct WeaponOutput {
 fn overlay_image(loaded: &Loaded, index: u32, warnings: &mut Vec<String>) -> Option<RgbaImage> {
     let registry = &loaded.prepared.weapons;
     let material = registry.overlay_material_of(index)?;
-    if registry.overlay_is_hud_iris(index) {
-        return None;
-    }
     let Some(image_name) = registry.overlay_image_of(index) else {
         warnings.push(format!("overlay material '{material}' names no image"));
         return None;
@@ -72,7 +69,7 @@ pub fn export_weapon(loaded: &Loaded, name: &str, index: u32, axis_hands: bool) 
     let p = &loaded.prepared;
     let registry = &p.weapons;
     let mut report = WeaponReport::new(name);
-    let extracted = match facts::extract(registry, index, p) {
+    let extracted = match facts::extract(registry, index, p, &loaded.strings, loaded.sounds.as_ref().ok()) {
         Ok(e) => e,
         Err(e) => return Err((e, report)),
     };
@@ -140,7 +137,13 @@ pub fn export_weapon(loaded: &Loaded, name: &str, index: u32, axis_hands: bool) 
         .collect();
     let overlay = overlay_image(loaded, index, &mut report.warnings);
     if facts.fpv.overlay_reticle != 0 && overlay.is_none() {
-        report.warnings.push("overlay_reticle set but no overlay image exported".to_owned());
+        report.warnings.push(format!(
+            "overlay_reticle {} but no overlay image exported (overlay material {:?}, image {:?}, hud iris {})",
+            facts.fpv.overlay_reticle,
+            registry.overlay_material_of(index),
+            registry.overlay_image_of(index),
+            registry.overlay_is_hud_iris(index)
+        ));
     }
     facts.has_overlay = overlay.is_some();
     report.has_overlay = facts.has_overlay;
@@ -176,22 +179,27 @@ pub struct PackSounds {
 /// Exports the union of every weapon's aliases plus [`EXTRA_SOUNDS`].
 pub fn export_sounds(loaded: &Loaded, weapons: &[WeaponOutput]) -> PackSounds {
     let mut out = PackSounds::default();
-    let Some(Ok(catalog)) = loaded.prepared.sound.as_ref() else {
-        out.skipped.push(Skipped {
-            alias: "*".to_owned(),
-            variant: 0,
-            reason: "the load produced no sound catalog".to_owned(),
-        });
-        return out;
+    let catalog = match &loaded.sounds {
+        Ok(c) => c,
+        Err(e) => {
+            out.skipped.push(Skipped {
+                alias: "*".to_owned(),
+                variant: 0,
+                reason: format!("no sound bank: {e}"),
+            });
+            return out;
+        }
     };
     let (iwd, _lines) = NamespaceSoundIwd::open(&NamespaceTrees::discover(&loaded.games));
     let mut wanted: BTreeSet<AliasRef> = weapons.iter().flat_map(|w| w.aliases.iter().cloned()).collect();
     for extra in EXTRA_SOUNDS {
-        if let Some(s) = catalog.sound_in(AssetNamespace::Iw4, extra) {
-            out.extras.push(s.name.clone());
+        // Stored under the name the engine asks for (room/src/dmw/audio.rs HITMARKER_ALIAS);
+        // the bank lookup is case-insensitive.
+        if catalog.sound_in(AssetNamespace::Iw4, extra).is_some() {
+            out.extras.push(extra.to_owned());
             wanted.insert(AliasRef {
                 ns: AssetNamespace::Iw4,
-                alias: s.name.clone(),
+                alias: extra.to_owned(),
             });
         }
     }

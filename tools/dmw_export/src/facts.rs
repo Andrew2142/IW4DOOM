@@ -122,16 +122,18 @@ fn anim_times(a: &WeaponAnimations) -> AnimTimes {
     }
 }
 
-/// English display name: the localize key looked up in `strings`, else the asset name.
+/// English display name: the localize key looked up in `strings` (in the weapon's identity
+/// namespace, as iw4L `hud/src/weapon_name.rs`), else the `*_mp` asset name.
 pub fn display_name(registry: &WeaponRegistry, index: u32, strings: &asset_game::LocalizeCatalog) -> String {
-    let name = registry.name_of(index).to_owned();
-    registry
-        .display_name_key_of(index)
-        .map(|k| k.trim_start_matches('@'))
-        .filter(|k| !k.is_empty())
-        .and_then(|k| strings.text(k))
-        .filter(|t| !t.is_empty())
-        .map_or(name, str::to_owned)
+    let fallback = registry.script_name_of(index);
+    let Some(key) = registry.display_name_key_of(index).filter(|k| !k.is_empty()) else {
+        return fallback;
+    };
+    let text = match registry.identity_namespace_of(index) {
+        Some(ns) => strings.text_in(ns, key).or_else(|| strings.text(key)),
+        None => strings.text(key),
+    };
+    text.filter(|t| !t.is_empty()).map_or(fallback, str::to_owned)
 }
 
 /// Resolves one authored alias against the sound bank. Returns the bank's alias name.
@@ -245,6 +247,8 @@ pub fn extract(
     registry: &WeaponRegistry,
     index: u32,
     prepared: &assets::PreparedMatch,
+    strings: &asset_game::LocalizeCatalog,
+    sound_catalog: Option<&SoundCatalog>,
 ) -> Result<ExtractedFacts, String> {
     let mut warnings = Vec::new();
     let bound = registry
@@ -307,11 +311,10 @@ pub fn extract(
                 ignition_delay_ms: ev.map_or(e.ignition_delay_ms, |v| v.ignition_delay_ms),
             }
         });
-    let sound_catalog = prepared.sound.as_ref().and_then(|s| s.as_ref().ok());
     let (sounds, aliases) = weapon_sounds(registry, index, sound_catalog, &mut warnings);
     let facts = WeaponFacts {
-        name: registry.name_of(index).to_owned(),
-        display_name: display_name(registry, index, &prepared.strings),
+        name: registry.script_name_of(index),
+        display_name: display_name(registry, index, strings),
         combat,
         kick: kick(&f.kick),
         sway: SwayFacts {

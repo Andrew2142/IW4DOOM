@@ -58,8 +58,8 @@ pub fn suggest<'a>(wanted: &str, names: impl IntoIterator<Item = &'a str>, limit
 pub fn published_names(registry: &WeaponRegistry) -> Vec<String> {
     registry
         .published_weapons()
-        .map(|b| registry.name_of(b.wire_id()).to_owned())
-        .filter(|n| !n.is_empty())
+        .filter(|b| !registry.name_of(b.wire_id()).is_empty())
+        .map(|b| registry.script_name_of(b.wire_id()))
         .collect()
 }
 

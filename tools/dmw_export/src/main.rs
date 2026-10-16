@@ -49,16 +49,17 @@ fn list(loaded: &load::Loaded) {
     let mut n = 0;
     for bound in registry.published_weapons() {
         let i = bound.wire_id();
-        let name = registry.name_of(i);
-        if name.is_empty() {
+        if registry.name_of(i).is_empty() {
             continue;
         }
-        let display = dmw_export::facts::display_name(registry, i, &loaded.prepared.strings);
+        let name = registry.script_name_of(i);
+        let display = dmw_export::facts::display_name(registry, i, &loaded.strings);
         let fpv = registry.fpv_assemblies_of(i, false).is_some();
-        println!("{name}\t{display}\t{}", if fpv { "fpv" } else { "no-fpv" });
+        let key = registry.display_name_key_of(i).unwrap_or("-");
+        println!("{name}\t{display}\t{}\t{key}", if fpv { "fpv" } else { "no-fpv" });
         n += 1;
     }
-    println!("{n} published weapons");
+    println!("{n} published weapons; {} localized strings", loaded.strings.len());
 }
 
 fn main() -> ExitCode {
@@ -102,6 +103,9 @@ fn main() -> ExitCode {
         roster::published_names(registry).len(),
         loaded.load_ms
     );
+    for gap in &loaded.sound_gaps {
+        println!("note: {gap}");
+    }
     if args.list {
         list(&loaded);
         return ExitCode::SUCCESS;
@@ -127,7 +131,7 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        if outputs.iter().any(|o| o.facts.name == registry.name_of(index)) {
+        if outputs.iter().any(|o| o.facts.name == registry.script_name_of(index)) {
             println!("note: {name} listed twice; exported once");
             continue;
         }
