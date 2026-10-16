@@ -43,6 +43,10 @@ MW2 game data never enters this repository. An MW2 installation is only needed t
 | `task export` | export an MW2 install to `packs/mw2` (needs `DMW_MW2_GAMES`, after sheet 04) |
 | `task ci` | `check`, `lint`, `test` |
 
+### Exporting MW2 weapons
+
+`task export` reads your own Modern Warfare 2 (2009) multiplayer installation (`DMW_MW2_GAMES` names a games root with an `iw4` folder or symlink to it) and writes `packs/mw2/`; `task export -- --list` lists the weapons it can export, `--weapons a_mp,b_mp` picks others. The pack, and iw4L's decoded-image cache that the exporter keeps in `packs/.dmw_export-cache/`, contain copyrighted material derived from MW2: they are for your personal use on the same machine, stay in the gitignored `packs/` directory and must not be redistributed or committed. `packs/mw2/report.json` lists everything that was skipped and why.
+
 Copy `.env.example` to `.env` to set `DMW_MW2_GAMES` and `DMW_IWAD`. Copy `doommw2.example.toml` to `doommw2.toml` to change settings.
 
 ## Shareware doom1.wad
