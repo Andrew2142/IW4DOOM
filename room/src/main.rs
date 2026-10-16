@@ -164,6 +164,9 @@ impl ApplicationHandler for App {
             }
         };
 
+        let size = window.inner_size();
+        room::dmw::viewmodel::set_window_size(size.width, size.height);
+
         // Initialise the GPU renderer.
         match GpuState::new(window.clone(), self.aspect_correct) {
             Ok(gpu) => {
@@ -193,6 +196,7 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
+                room::dmw::viewmodel::set_window_size(new_size.width, new_size.height);
                 GPU.with_borrow_mut(|g| {
                     if let Some(gpu) = g.as_mut() {
                         gpu.resize(new_size);
