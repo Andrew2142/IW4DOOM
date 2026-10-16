@@ -516,6 +516,7 @@ pub(crate) fn draw_view_overlays() {
     guarded("draw_view_overlays", (), || {
         super::hud::draw_view_overlays();
         super::hud::draw_use_prompt();
+        super::fps::on_frame();
     });
 }
 

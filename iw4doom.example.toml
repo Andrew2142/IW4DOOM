@@ -117,3 +117,5 @@ hitmarker = true
 ammo_counter = true
 # Show the MW2 weapon name when switching weapons.
 weapon_names = true
+# Show the frames-per-second counter at start-up; the ` (backquote) key toggles it in game.
+show_fps = false

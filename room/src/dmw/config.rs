@@ -526,6 +526,8 @@ pub struct HudCfg {
     pub ammo_counter: bool,
     /// Show the MW2 weapon name when switching.
     pub weapon_names: bool,
+    /// Show the frames-per-second counter at start-up (toggle in game with the backquote key).
+    pub show_fps: bool,
 }
 
 impl Default for HudCfg {
@@ -535,6 +537,7 @@ impl Default for HudCfg {
             hitmarker: true,
             ammo_counter: true,
             weapon_names: true,
+            show_fps: false,
         }
     }
 }

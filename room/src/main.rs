@@ -53,7 +53,7 @@ use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::{DeviceEvent, DeviceId, ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::keyboard::PhysicalKey;
+use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Window, WindowId};
 
 use room::doom::doomgeneric::{DOOMGENERIC_RESX, DOOMGENERIC_RESY};
@@ -215,6 +215,14 @@ impl ApplicationHandler for App {
                 if let PhysicalKey::Code(code) = event.physical_key {
                     // Ignore auto-repeat key presses (key held down).
                     if event.repeat {
+                        return;
+                    }
+
+                    // Backquote toggles the FPS counter; Doom never sees it.
+                    if code == KeyCode::Backquote {
+                        if event.state == ElementState::Pressed {
+                            room::dmw::fps::toggle();
+                        }
                         return;
                     }
 

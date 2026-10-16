@@ -49,6 +49,7 @@ pub mod ballistics;
 pub mod config;
 pub mod consts;
 pub mod ext;
+pub mod fps;
 pub mod freelook;
 pub mod hooks;
 pub mod hud;

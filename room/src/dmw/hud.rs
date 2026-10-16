@@ -906,6 +906,31 @@ fn draw_text_centred(text: &str, cx: i32, y: i32) {
     });
 }
 
+/// Draws `text` in the HU font right-aligned in the top-right corner of the view window
+/// (the FPS counter).
+pub(crate) fn draw_corner_text(text: &str) {
+    // SAFETY: renderer globals, read on the engine thread.
+    let (right, top) = unsafe {
+        use crate::doom::r_draw::{scaledviewwidth, viewwindowx, viewwindowy};
+        (viewwindowx + scaledviewwidth - 2, viewwindowy + 2)
+    };
+    let width = with_patches(|p| {
+        text.chars()
+            .map(|c| {
+                let code = c.to_ascii_uppercase() as usize;
+                patch_width(if (33..=96).contains(&code) {
+                    p.font[code - 33]
+                } else {
+                    std::ptr::null_mut()
+                })
+            })
+            .sum::<i32>()
+    });
+    if let Some(width) = width {
+        draw_text_centred(text, right - width / 2, top);
+    }
+}
+
 /// Draws a non-negative number right-aligned to column `right`, top row `y`.
 fn draw_number(n: i32, right: i32, y: i32, digits: &[*mut crate::doom::v_video::patch_t; 10]) {
     let text = n.clamp(0, 9999).to_string();
@@ -1167,16 +1192,33 @@ mod reload_prompt_tests {
 
     #[test]
     fn one_round_weapon_prompts_only_when_empty() {
-        assert_eq!(ammo_prompt(1, 5, 1, false, "R"), None, "loaded RPG: no prompt");
-        assert_eq!(ammo_prompt(0, 5, 1, false, "R").as_deref(), Some("Press R to reload"));
+        assert_eq!(
+            ammo_prompt(1, 5, 1, false, "R"),
+            None,
+            "loaded RPG: no prompt"
+        );
+        assert_eq!(
+            ammo_prompt(0, 5, 1, false, "R").as_deref(),
+            Some("Press R to reload")
+        );
         assert_eq!(ammo_prompt(0, 0, 1, false, "R").as_deref(), Some("NO AMMO"));
     }
 
     #[test]
     fn full_magazine_never_prompts_and_low_one_does() {
-        assert_eq!(ammo_prompt(2, 5, 2, false, "R"), None, "full 2-round magazine");
-        assert_eq!(ammo_prompt(1, 5, 2, false, "R").as_deref(), Some("Press R to reload"));
-        assert_eq!(ammo_prompt(3, 60, 12, false, "R").as_deref(), Some("Press R to reload"));
+        assert_eq!(
+            ammo_prompt(2, 5, 2, false, "R"),
+            None,
+            "full 2-round magazine"
+        );
+        assert_eq!(
+            ammo_prompt(1, 5, 2, false, "R").as_deref(),
+            Some("Press R to reload")
+        );
+        assert_eq!(
+            ammo_prompt(3, 60, 12, false, "R").as_deref(),
+            Some("Press R to reload")
+        );
         assert_eq!(ammo_prompt(4, 60, 12, false, "R"), None);
     }
 }
