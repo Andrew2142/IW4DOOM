@@ -43,18 +43,14 @@ Bring your own MW2 and DOOM. One script builds the rest.
 
 ## Features
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/images/showcase.gif" alt="Cycling through the MW2 weapons in-game: assault rifles, sniper scope, launchers, with the Doom status bar" /></td>
-    <td width="50%"><img src="docs/images/scope-fixture.png" alt="A sniper scope overlay with sway, over Freedoom" /></td>
-  </tr>
-  <tr>
-    <td><strong>3D viewmodels in Doom's palette</strong><br />Every triangle is shaded with Doom's light levels and quantized to the 256-colour palette. Shown here cycling through the MW2 arsenal.</td>
-    <td><strong>Aim down sights and scopes</strong><br />The field of view zooms, sniper rifles get their scope overlay, and Shift holds your breath to steady the sway.</td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/images/showcase.gif" width="640" alt="Cycling through the MW2 weapons in-game: assault rifles, sniper scope, launchers, with the Doom status bar" />
+</p>
+
+**3D viewmodels in Doom's palette.** Every triangle is shaded with Doom's light levels and quantized to the 256-colour palette. Shown here cycling through the MW2 arsenal.
 
 - **MW2 weapon behaviour.** Fire rates, burst and semi-auto, magazine and shell-by-shell reloads, raise and drop times, recoil, spread bloom, sway and sprint all come from the weapon files.
+- **Aim down sights and scopes.** The field of view zooms, sniper rifles get their scope overlay, and Shift holds your breath to steady the sway.
 - **Ballistics.** MW2 damage with range falloff for bullets, explosive RPG rockets, and a hitmarker when you connect.
 - **Freelook.** Look up and down with the mouse; the software renderer shears the view the way Doom ports traditionally do.
 - **MW2 HUD touches.** Dynamic crosshair, ammo counter, weapon names, "Press F to open" and "Press R to reload" prompts.
