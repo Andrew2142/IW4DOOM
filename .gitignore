@@ -12,6 +12,7 @@ session-*.md
 /.env
 *.dsg
 /doommw2.toml
+/iw4doom.toml
 /.default.cfg
 
 # Golden files for the pack format tests are JSON.

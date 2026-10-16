@@ -755,3 +755,14 @@ pub fn quantize(image: &RgbaImage, pal: &PaletteTables, dither: Dither, alpha: A
 
 - §8.3 / Revision 9: `doommw2.toml` `[input]` also owns Doom's movement and use keys, defaulting to WASD (`key_up = 'w'`, `key_down = 's'`, `key_strafeleft = 'a'`, `key_straferight = 'd'`) and `key_use = 'f'`; arrow left/right still turn. Applied in both MW2 and `-nomw2` modes (demos replay ticcmds, so `demo_playthrough` is unaffected).
 - New HUD prompts (sheet 12): "Press F to open" / "Press F to use" / "Needs <colour> key" when facing a use-activated line in range, and "Press R to reload"; key letters come from the bindings.
+
+### Revision 11 — 2026-10-16 (from sheet 14 §11; public name IW4DOOM, lead request)
+
+Sections above that say otherwise are superseded by this revision (they are not rewritten).
+
+- D3: iw4L is consumed as pinned **git** dependencies, `{ git = "https://github.com/vladtrc/iw4L", rev = "fc3d8eaf6045cb131eb74cd41954f0c4922b9913" }`, in the root workspace and `tools/dmw_export`. `IW4L_REV` holds the full hash. A local checkout is used through `.cargo/config.toml` (gitignored; template `.cargo/config.toml.example`). `tools/check-iw4l-rev.sh` checks both manifests and both lockfiles, and `../iw4L` only when it exists.
+- §4.1: no Git LFS (`doom1.wad`, `soundfonts/`, `.gitattributes` removed). New: `games/` (the user's game files: `iw4/`, `doom/`, optional `soundfont.sf2`; only `games/README.md` is tracked), `setup.sh`, generated `play.sh` and `setup.log` (gitignored), `.github/workflows/ci.yml`, `docs/RELEASE.md`. `rust-toolchain.toml` stays `stable`; `setup.sh` requires rustc ≥ 1.97.1 (the exporter's Bevy MSRV).
+- §4.2: `DMW_MW2_GAMES` defaults to `<repo>/games` when set by `setup.sh`; `DMW_DOOM1_WAD` (new) is the fallback path of the shareware IWAD for `demo_playthrough` after `games/doom/doom1.wad`.
+- Public name **IW4DOOM** (repository `IW4DOOM`). The binary is `iw4doom` (was `doommw2`); the window title is `IW4DOOM` (`IW4DOOM - <game description>` once the IWAD is known). Internal names (crates `room`, `dmw_*`, module `dmw`, log targets `dmw::*`, the `DOOMMW2` name in specs and code comments) are unchanged.
+- §4.3/§4.4: the config file is `iw4doom.toml` (`./iw4doom.toml`, then `$XDG_CONFIG_HOME/iw4doom/iw4doom.toml`); `doommw2.toml` in the old places is still read after the new name. The template is `iw4doom.example.toml`. `-mw2config` is unchanged.
+- Music: `-sf2 <path>`, else `games/soundfont.sf2`, else no music (one `info` line).

@@ -22,9 +22,17 @@ use crate::doom::doomkeys::{
 const TARGET: &str = "dmw::config";
 
 /// File name searched for in the working directory and the user config directory.
-pub const CONFIG_FILE_NAME: &str = "doommw2.toml";
+pub const CONFIG_FILE_NAME: &str = "iw4doom.toml";
 
-/// Entire `doommw2.toml`. Missing sections and keys take their defaults.
+/// Earlier name of [`CONFIG_FILE_NAME`] (and of its config directory), still accepted after it.
+pub const LEGACY_CONFIG_FILE_NAME: &str = "doommw2.toml";
+
+/// Config directory under `$XDG_CONFIG_HOME` (or `~/.config`).
+const CONFIG_DIR_NAME: &str = "iw4doom";
+/// Earlier name of [`CONFIG_DIR_NAME`].
+const LEGACY_CONFIG_DIR_NAME: &str = "doommw2";
+
+/// Entire `iw4doom.toml`. Missing sections and keys take their defaults.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct DmwConfig {
@@ -533,8 +541,9 @@ impl DmwConfig {
     /// Finds and parses the config file.
     ///
     /// With `explicit` (`-mw2config <file>`) only that file is tried. Otherwise the search is
-    /// `./doommw2.toml`, then `$XDG_CONFIG_HOME/doommw2/doommw2.toml`, falling back to
-    /// `~/.config/doommw2/doommw2.toml`. Returns the config and the file that was found
+    /// `./iw4doom.toml`, `./doommw2.toml` (the earlier name), then
+    /// `$XDG_CONFIG_HOME/iw4doom/iw4doom.toml` and `$XDG_CONFIG_HOME/doommw2/doommw2.toml`, with
+    /// `~/.config` when `XDG_CONFIG_HOME` is unset. Returns the config and the file that was found
     /// (even when it failed to parse and defaults were used).
     pub fn load(explicit: Option<&Path>) -> (DmwConfig, Option<PathBuf>) {
         let candidates = candidate_paths(
@@ -551,6 +560,12 @@ impl DmwConfig {
             match std::fs::read_to_string(path) {
                 Ok(text) => {
                     info!(target: TARGET, "config: {}", path.display());
+                    if path.file_name() == Some(std::ffi::OsStr::new(LEGACY_CONFIG_FILE_NAME)) {
+                        info!(
+                            target: TARGET,
+                            "{LEGACY_CONFIG_FILE_NAME} is the old name; rename it to {CONFIG_FILE_NAME}"
+                        );
+                    }
                     let cfg = Self::from_toml_str(&text, &path.display().to_string());
                     return (cfg, Some(path.clone()));
                 }
@@ -669,14 +684,21 @@ pub fn candidate_paths(
     if let Some(path) = explicit {
         return vec![path.to_path_buf()];
     }
-    let mut out = vec![PathBuf::from(CONFIG_FILE_NAME)];
+    let mut out = vec![
+        PathBuf::from(CONFIG_FILE_NAME),
+        PathBuf::from(LEGACY_CONFIG_FILE_NAME),
+    ];
     let xdg = xdg_config_home.filter(|v| !v.is_empty()).map(PathBuf::from);
     let base = xdg.or_else(|| {
         home.filter(|v| !v.is_empty())
             .map(|h| PathBuf::from(h).join(".config"))
     });
     if let Some(base) = base {
-        out.push(base.join("doommw2").join(CONFIG_FILE_NAME));
+        out.push(base.join(CONFIG_DIR_NAME).join(CONFIG_FILE_NAME));
+        out.push(
+            base.join(LEGACY_CONFIG_DIR_NAME)
+                .join(LEGACY_CONFIG_FILE_NAME),
+        );
     }
     out
 }
@@ -783,7 +805,7 @@ mod tests {
             .unwrap_or(0)
     }
 
-    const EXAMPLE: &str = include_str!("../../../doommw2.example.toml");
+    const EXAMPLE: &str = include_str!("../../../iw4doom.example.toml");
 
     #[test]
     fn example_file_equals_default() {
@@ -1009,27 +1031,31 @@ mod tests {
         assert_eq!(
             xdg,
             [
+                PathBuf::from("iw4doom.toml"),
                 PathBuf::from("doommw2.toml"),
-                PathBuf::from("/xdg/doommw2/doommw2.toml")
+                PathBuf::from("/xdg/iw4doom/iw4doom.toml"),
+                PathBuf::from("/xdg/doommw2/doommw2.toml"),
             ]
         );
         let home = candidate_paths(None, Some("".into()), Some("/home/u".into()));
         assert_eq!(
             home,
             [
+                PathBuf::from("iw4doom.toml"),
                 PathBuf::from("doommw2.toml"),
-                PathBuf::from("/home/u/.config/doommw2/doommw2.toml")
+                PathBuf::from("/home/u/.config/iw4doom/iw4doom.toml"),
+                PathBuf::from("/home/u/.config/doommw2/doommw2.toml"),
             ]
         );
         assert_eq!(
             candidate_paths(None, None, None),
-            [PathBuf::from("doommw2.toml")]
+            [PathBuf::from("iw4doom.toml"), PathBuf::from("doommw2.toml")]
         );
     }
 
     #[test]
     fn load_from_uses_the_first_existing_file() {
-        let dir = std::env::temp_dir().join(format!("doommw2-config-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("iw4doom-config-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("mkdir");
         let found = dir.join("found.toml");
         std::fs::write(&found, "[hud]\ncrosshair = false\n").expect("write");

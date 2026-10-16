@@ -7,7 +7,7 @@
 //!   cargo test -p room --release --test mw2pack_headless -- --ignored --nocapture
 //! ```
 //!
-//! Optional `DMW_REAL_CONFIG=<doommw2.toml>` passes `-mw2config` (to map other pack weapons).
+//! Optional `DMW_REAL_CONFIG=<iw4doom.toml>` passes `-mw2config` (to map other pack weapons).
 //!
 //! For every Doom weapon slot mapped to an MW2 weapon: select it (IDKFA gives everything),
 //! wait for the raise, fire, reload, aim down sights, and check that MW2 mode stays on and the

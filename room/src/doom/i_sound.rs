@@ -301,7 +301,11 @@ fn find_soundfont_path() -> Option<std::path::PathBuf> {
     }
 
     if let Ok(exe) = std::env::current_exe() {
-        if let Some(repo) = exe.parent().and_then(|d| d.parent()).and_then(|d| d.parent()) {
+        if let Some(repo) = exe
+            .parent()
+            .and_then(|d| d.parent())
+            .and_then(|d| d.parent())
+        {
             let p = repo.join(games);
             if p.is_file() {
                 return Some(p);

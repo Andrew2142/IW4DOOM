@@ -454,10 +454,14 @@ pub extern "C" fn DG_GetMouse(dx: *mut i32, dy: *mut i32, buttons: *mut u8) -> i
     })
 }
 
+/// Public name shown in the window title.
+pub const WINDOW_TITLE: &str = "IW4DOOM";
+
 /// Update the OS window title.
 ///
 /// Called by the engine when it discovers the game description from the
-/// loaded WAD file (e.g. "The Ultimate DOOM").
+/// loaded WAD file (e.g. "The Ultimate DOOM"); shown as
+/// "IW4DOOM - The Ultimate DOOM".
 ///
 /// # Safety
 ///
@@ -471,7 +475,7 @@ pub extern "C" fn DG_SetWindowTitle(title: *const c_char) {
 
     // SAFETY: caller guarantees `title` is a valid C string.
     let s = unsafe { CStr::from_ptr(title) };
-    let title_str = s.to_string_lossy();
+    let title_str = format!("{WINDOW_TITLE} - {}", s.to_string_lossy());
 
     WINDOW.with_borrow(|w| {
         if let Some(window) = w.as_ref() {

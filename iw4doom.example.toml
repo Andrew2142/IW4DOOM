@@ -1,5 +1,6 @@
-# DOOMMW2 configuration. Copy to doommw2.toml (current directory) or
-# $XDG_CONFIG_HOME/doommw2/doommw2.toml. Every key is shown at its default.
+# IW4DOOM configuration. Copy to iw4doom.toml (current directory) or
+# $XDG_CONFIG_HOME/iw4doom/iw4doom.toml (~/.config/iw4doom/iw4doom.toml). The earlier name
+# doommw2.toml is still read when no iw4doom.toml exists. Every key is shown at its default.
 # Unknown keys are a warning, not an error. Out-of-range values are clamped.
 
 [general]
@@ -68,7 +69,7 @@ muzzle_flash = "doom"
 raw_mouse = true
 # Grab the cursor as soon as the window opens.
 grab_on_start = true
-# DOOMMW2 bindings (Doom's default.cfg is not read by this engine). A key is a single
+# IW4DOOM bindings (Doom's default.cfg is not read by this engine). A key is a single
 # character ("r"), a name ("rshift", "rctrl", "ralt", "space", "tab", "enter", "backspace",
 # "uparrow", "downarrow", "leftarrow", "rightarrow", "home", "end", "pgup", "pgdn", "ins",
 # "del", "f1".."f10"), "none", or a Doom key code 0..255.

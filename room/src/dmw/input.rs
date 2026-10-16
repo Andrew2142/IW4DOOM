@@ -325,7 +325,7 @@ pub(crate) fn force_run() -> bool {
     mode::level_active()
 }
 
-/// Copies the `doommw2.toml` `[input]` bindings into the `m_controls` statics (the runtime
+/// Copies the `iw4doom.toml` `[input]` bindings into the `m_controls` statics (the runtime
 /// values read above). Called once by sheet 08's `on_engine_init`.
 pub(crate) fn apply_bindings(cfg: &crate::dmw::config::InputCfg) {
     // SAFETY: plain ints on the single engine thread; no reference to them is live.
@@ -349,7 +349,7 @@ pub(crate) fn apply_bindings(cfg: &crate::dmw::config::InputCfg) {
         mc::mouse_dmw_invert = c_int::from(cfg.mouse_dmw_invert);
         mc::mouse_dmw_pitch_sens = cfg.mouse_dmw_pitch_sens;
     }
-    debug!(target: TARGET, "bindings from doommw2.toml applied");
+    debug!(target: TARGET, "bindings from iw4doom.toml applied");
 }
 
 // ---------------------------------------------------------------------------

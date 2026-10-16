@@ -258,7 +258,7 @@ impl Harness {
         );
         install_logger();
 
-        let mut full: Vec<String> = vec!["doommw2".to_owned()];
+        let mut full: Vec<String> = vec!["iw4doom".to_owned()];
         full.extend(args.iter().map(|a| (*a).to_owned()));
         let has = |flag: &str| args.contains(&flag);
         if !has("-mb") {

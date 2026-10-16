@@ -1,5 +1,5 @@
 # https://github.com/go-task/task
-# DOOMMW2 task runner (docs/specs/02-workspace-scaffold.md section 5.6).
+# IW4DOOM (DOOMMW2) task runner (docs/specs/02-workspace-scaffold.md section 5.6).
 version: "3"
 
 dotenv: [".env"]
@@ -43,7 +43,7 @@ tasks:
     desc: "Run the game: task run -- -warp 1 1"
     cmds:
       # -mb 32: room's default 6 MiB zone is too small for the Freedoom IWADs (Z_Malloc failure).
-      - cargo run --release --bin doommw2 -- -iwad ${DMW_IWAD:-wads/freedoom1.wad} -mb 32 {{.CLI_ARGS}}
+      - cargo run --release --bin iw4doom -- -iwad ${DMW_IWAD:-wads/freedoom1.wad} -mb 32 {{.CLI_ARGS}}
 
   run-fixture:
     desc: Run with the in-memory synthetic fixture pack (needs sheets 03 and 08)

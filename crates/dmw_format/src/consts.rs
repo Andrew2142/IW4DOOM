@@ -48,7 +48,7 @@ pub const PIXEL_ASPECT: f32 = 5.0 / 6.0;
 pub const MW2_CG_FOV: f32 = 65.0;
 /// Doom's fixed horizontal field of view.
 pub const DOOM_HFOV: f32 = 90.0;
-/// Default viewmodel horizontal FOV (`doommw2.toml` `[render] viewmodel_fov`).
+/// Default viewmodel horizontal FOV (`iw4doom.toml` `[render] viewmodel_fov`).
 pub const VIEWMODEL_FOV_DEFAULT: f32 = 65.0;
 /// Number of light colormaps in a WAD `COLORMAP` lump (excluding the invulnerability map).
 pub const NUMCOLORMAPS: usize = 32;

@@ -76,7 +76,7 @@ use config::DmwConfig;
 /// here, so hooks can ask while this state is borrowed.
 #[derive(Debug)]
 pub struct DmwState {
-    /// Parsed `doommw2.toml`.
+    /// Parsed `iw4doom.toml`.
     pub config: DmwConfig,
     /// The file the config came from (`None` = defaults).
     pub config_path: Option<PathBuf>,

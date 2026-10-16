@@ -72,9 +72,9 @@ Bash, `set -euo pipefail`, Linux only (prints a clear message and exits on other
 3. **System libraries.** Check `cc`, `pkg-config`, and `pkg-config --exists alsa wayland-client xkbcommon libudev`. If anything is missing, detect the package manager and print the one install line (apt: `sudo apt install build-essential pkg-config libasound2-dev libwayland-dev libxkbcommon-dev libudev-dev`; dnf and pacman equivalents), then exit 1. The script never runs `sudo` itself.
 4. **Build the exporter.** `cargo build --release` in `tools/dmw_export` (first build ≈ 10–15 min; say so before starting).
 5. **Export.** If `packs/mw2/manifest.json` is missing, or `--reexport`, or its `iw4l_rev`/generator differ from the current build: run `dmw_export --out packs/mw2` with `IW4L_GAMES=$PWD/games`. Map exit codes to plain-English messages (2: MW2 not found at games/iw4; 3: load refused — iw4L log path; 4: a weapon failed — list from `report.json`; 5: disk). Print the one-line-per-weapon summary.
-6. **Build the game.** `cargo build --release --bin doommw2`.
+6. **Build the game.** `cargo build --release --bin iw4doom` (binary renamed from `doommw2`, 00 Revision 11).
 7. **Smoke test.** Run the game headless for 70 tics on the chosen IWAD with the real pack (`room` test harness binary or a `--smoke` flag added to the game: init, load E1M1/MAP01, run tics, exit 0). Fail the setup if MW2 mode did not turn on, naming the reason from the log.
-8. **Launcher.** Write `play.sh` (executable): `exec target/release/doommw2 -iwad "games/doom/<chosen>" -mw2pack packs/mw2 -mb 128 ${SF2:+-sf2 games/soundfont.sf2} "$@"`, plus `--iwad`/`--list` handling. Print "Done. Run ./play.sh".
+8. **Launcher.** Write `play.sh` (executable): `exec target/release/iw4doom -iwad "games/doom/<chosen>" -mw2pack packs/mw2 -mb 128 ${SF2:+-sf2 games/soundfont.sf2} "$@"`, plus `--iwad`/`--list` handling. Print "Done. Run ./play.sh".
 
 `-mb 128` works around room's `Z_FreeTags` 2000-block limit (sheet 13 §11); remove it when that engine bug is fixed (separate task).
 
@@ -114,7 +114,7 @@ Top of the file, for players:
 1. What it is (one paragraph, one screenshot rendered with the **fixture** pack — never MW2 assets).
 2. Requirements: Linux, ~4 GB free disk for the build, your own MW2 (2009) multiplayer install and your own Doom IWAD.
 3. Steps: `git clone …`, put files in `games/` (copy of §5.1), `./setup.sh`, `./play.sh`.
-4. Controls (00 §8.3 defaults; `doommw2.toml` to rebind).
+4. Controls (00 §8.3 defaults; `iw4doom.toml` to rebind).
 5. Troubleshooting: the setup exit messages, `setup.log`, where iw4L logs go.
 6. Legal: you must own the games; no game data is included or downloaded; the pack stays on your machine; not affiliated with or endorsed by Activision, Infinity Ward, id Software, Bethesda or ZeniMax; trademarks belong to their owners; GPL-3.0-or-later with Apache-2.0 portions (NOTICE).
 
@@ -174,5 +174,5 @@ The repository ships code only. Users' game data lives in `games/` and the deriv
 
 ## 11. Contract changes requested
 
-1. 00 D3: iw4L is consumed as pinned **git** dependencies (same rev) with an optional local path override, replacing sibling path dependencies. — Lead applies when this sheet starts.
-2. 00 §4.1/§4.2: add `games/` (user data root) and `setup.sh`/`play.sh`; `DMW_MW2_GAMES` defaults to `<repo>/games`.
+1. 00 D3: iw4L is consumed as pinned **git** dependencies (same rev) with an optional local path override, replacing sibling path dependencies. — Resolved in 00 Revision 11.
+2. 00 §4.1/§4.2: add `games/` (user data root) and `setup.sh`/`play.sh`; `DMW_MW2_GAMES` defaults to `<repo>/games`. — Resolved in 00 Revision 11 (with the IW4DOOM rename: binary `iw4doom`, config `iw4doom.toml`).

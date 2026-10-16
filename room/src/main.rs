@@ -60,7 +60,7 @@ use room::doom::doomgeneric::{DOOMGENERIC_RESX, DOOMGENERIC_RESY};
 
 use gpu::GpuState;
 use platform::keys::to_doom_key;
-use platform::{GPU, KEY_QUEUE, QUIT_REQUESTED, WINDOW};
+use platform::{GPU, KEY_QUEUE, QUIT_REQUESTED, WINDOW, WINDOW_TITLE};
 
 // ---------------------------------------------------------------------------
 // App – the winit ApplicationHandler
@@ -86,7 +86,7 @@ struct App {
     /// `doomgeneric_Tick` instead.
     doom_initialized: bool,
 
-    /// `doommw2.toml` `[render] aspect_correct`: 4:3 letterboxed presentation.
+    /// `iw4doom.toml` `[render] aspect_correct`: 4:3 letterboxed presentation.
     aspect_correct: bool,
 }
 
@@ -150,7 +150,7 @@ impl ApplicationHandler for App {
         );
 
         let window_attrs = Window::default_attributes()
-            .with_title("DOOMMW2")
+            .with_title(WINDOW_TITLE)
             .with_inner_size(LogicalSize::new(win_w, win_h))
             .with_min_inner_size(LogicalSize::new(320u32, 240u32))
             .with_resizable(true);
@@ -302,9 +302,9 @@ fn main() {
     // Initialise the logger.  Set `RUST_LOG=debug` for verbose output.
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    log::info!("DOOMMW2 – room-based Doom with MW2 gunplay");
+    log::info!("IW4DOOM – room-based Doom with MW2 gunplay");
 
-    // Mouse capture settings live in doommw2.toml `[input]`.
+    // Mouse capture settings live in iw4doom.toml `[input]`.
     let explicit_config = platform::mw2config_arg();
     let (config, _) = room::dmw::config::DmwConfig::load(explicit_config.as_deref());
     platform::configure_input(&config.input);
