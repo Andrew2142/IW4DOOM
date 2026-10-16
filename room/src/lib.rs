@@ -55,6 +55,8 @@ pub mod dmw;
 pub mod doom;
 pub mod headless;
 pub mod types;
+#[cfg(test)]
+mod test_dg_stubs;
 
 // Re-export `dhat` when the `dhat-heap` Cargo feature is enabled so binaries
 // can install the heap profiler without listing `dhat` as a direct dependency.
