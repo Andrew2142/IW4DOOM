@@ -196,6 +196,12 @@ You must own the games you use with it. IW4DOOM contains no game data and downlo
 
 The combined work is licensed **GPL-3.0-or-later** ([LICENSE](LICENSE)). The Doom engine code is GPL-2.0-or-later ([LICENSE-GPL-2.0](LICENSE-GPL-2.0)); code ported from iw4L is Apache-2.0 ([LICENSE-APACHE-2.0](LICENSE-APACHE-2.0)). See [NOTICE](NOTICE) and [docs/provenance.md](docs/provenance.md).
 
+## Documentation
+
+- [Build specs](docs/specs/README.md): the full design, starting with `00-overview-and-contracts.md`
+- [AGENTS.md](AGENTS.md): rules for contributors and coding agents
+- [Release checklist](docs/RELEASE.md)
+- [Provenance](docs/provenance.md): what came from where
 
 ## Credits
 
@@ -204,27 +210,5 @@ IW4DOOM is built on these projects. If you enjoy it, go and support them.
 - [**iw4L**](https://github.com/vladtrc/iw4L) by vladtrc: the MW2 weapon logic and asset readers behind the gunplay.
 - [**room**](https://github.com/sunsided/room) by sunsided: the Rust Doom engine IW4DOOM forks.
 - [**doomgeneric**](https://github.com/ozkl/doomgeneric) by ozkl: the portable Doom source room is ported from.
-
-## Documentation
-
-- [Build specs](docs/specs/README.md): the full design, starting with `00-overview-and-contracts.md`
-- [AGENTS.md](AGENTS.md): rules for contributors and coding agents
-- [Release checklist](docs/RELEASE.md)
-- [Provenance](docs/provenance.md): what came from where
-
-### For developers
-
-The internal crate names still use the project's working name, DOOMMW2 (`room`, `dmw_format`, `dmw_weapons`, `dmw_viewmodel`, `tools/dmw_export`).
-
-| Command | What it does |
-| --- | --- |
-| `task check` | `cargo check` for the workspace |
-| `task lint` | clippy on the new crates, the engine glue gate, crate boundaries |
-| `task test` | all tests; `demo_playthrough` needs the shareware IWAD at `games/doom/doom1.wad` (or `DMW_DOOM1_WAD`) and is skipped with a notice otherwise |
-| `task fetch-wads` | download the pinned Freedoom IWADs into `wads/` (tests use them) |
-| `task run-fixture -- -warp 1 1` | play on Freedoom with the built-in placeholder gun, no MW2 needed |
-| `task export` | export your MW2 install to `packs/mw2` (`DMW_MW2_GAMES=games`) |
-
-iw4L is a git dependency pinned to `IW4L_REV`. To build against a local checkout, copy `.cargo/config.toml.example` to `.cargo/config.toml`. Tests never need MW2 data: they use Freedoom and the in-memory fixture pack (`-fixturepack`).
 
 IW4DOOM is alpha software. Expect rough edges, and please open an issue when something breaks.
