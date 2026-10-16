@@ -199,20 +199,11 @@ The combined work is licensed **GPL-3.0-or-later** ([LICENSE](LICENSE)). The Doo
 
 ## Credits
 
-IW4DOOM stands on the work of these open-source projects. If you enjoy it, go and support them: star their repositories, report bugs, contribute, or sponsor their authors.
+IW4DOOM is built on these projects. If you enjoy it, go and support them.
 
-| Project | What it gives IW4DOOM |
-| --- | --- |
-| [**iw4L**](https://github.com/vladtrc/iw4L) by vladtrc | The heart of the gunplay. A Rust runtime for Modern Warfare 2 whose weapon logic (fire timing, spread, recoil, sway, ADS, reloads) and asset readers IW4DOOM builds on. |
-| [**room**](https://github.com/sunsided/room) by Markus Mayer (sunsided) | The engine. A complete Rust port of doomgeneric, which IW4DOOM forks and extends. |
-| [**doomgeneric**](https://github.com/ozkl/doomgeneric) by ozkl | The portable Doom base that room ports. |
-| [**Chocolate Doom**](https://github.com/chocolate-doom/chocolate-doom) | The faithful Doom source port doomgeneric is built from. |
-| [**Freedoom**](https://github.com/freedoom/freedoom) | Free, open game content used for development, tests and screenshots. |
-| [**DOOM**](https://github.com/id-Software/DOOM) by id Software | The original source release that made all of the above possible. |
-
-iw4L itself credits [OpenAssetTools](https://github.com/Laupetin/OpenAssetTools), [IW4x](https://github.com/iw4x/iw4x-client) and [KisakCOD](https://github.com/SwagSoftware/KisakCOD); they deserve your support too.
-
-Thanks also to the Rust ecosystem underneath: [wgpu](https://github.com/gfx-rs/wgpu), [winit](https://github.com/rust-windowing/winit), [rodio](https://github.com/RustAudio/rodio), [rustysynth](https://github.com/sinshu/rustysynth), [glam](https://github.com/bitshifter/glam-rs) and [Bevy](https://github.com/bevyengine/bevy) (used by the exporter through iw4L).
+- [**iw4L**](https://github.com/vladtrc/iw4L) by vladtrc: the MW2 weapon logic and asset readers behind the gunplay.
+- [**room**](https://github.com/sunsided/room) by sunsided: the Rust Doom engine IW4DOOM forks.
+- [**doomgeneric**](https://github.com/ozkl/doomgeneric) by ozkl: the portable Doom source room is ported from.
 
 ## Documentation
 
