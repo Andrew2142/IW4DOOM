@@ -430,8 +430,11 @@ if (Test-Command 'rustup') {
 }
 $code = Invoke-Logged 'rustc' @('--version')
 $rustcVersion = ''
-if ($code -eq 0 -and $script:LastOutput.Count -gt 0 -and $script:LastOutput[0] -match '^rustc (\d+\.\d+\.\d+)') {
-    $rustcVersion = $Matches[1]
+if ($code -eq 0) {
+    # rustup may print its own info lines first.
+    foreach ($line in $script:LastOutput) {
+        if ($line -match '^rustc (\d+\.\d+\.\d+)') { $rustcVersion = $Matches[1]; break }
+    }
 }
 if (-not $rustcVersion) { Fail @("rustc does not run. Reinstall Rust from $RustupUrl") }
 if ([version]$rustcVersion -lt $MinRust) {
@@ -456,7 +459,7 @@ function Test-Msvc {
         if ($path) { return [string]$path }
     }
     $link = Get-Command 'link.exe' -ErrorAction SilentlyContinue
-    if ($link -and $link.Source -notmatch '\\Git\\') { return (Split-Path -Parent $link.Source) }
+    if ($link -and $link.Path -notmatch '\\Git\\') { return (Split-Path -Parent $link.Path) }
     return ''
 }
 $msvc = Test-Msvc
