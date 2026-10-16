@@ -208,8 +208,8 @@ pub struct RecordedEvent {
 
 static STARTED: AtomicBool = AtomicBool::new(false);
 
-/// Locates the IWAD: `DMW_IWAD`, else `wads/freedoom1.wad`, else `doom1.wad` when it is a real
-/// WAD. Panics with the sheet 01 section 5.9 message when none exists (no silent skip).
+/// Locates the IWAD: `DMW_IWAD`, else `wads/freedoom1.wad`, else `games/doom/doom1.wad` when it
+/// is a real WAD. Panics with the sheet 01 section 5.9 message when none exists (no silent skip).
 pub fn find_wad() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let root = manifest.parent().expect("room has a parent directory");
@@ -218,7 +218,7 @@ pub fn find_wad() -> PathBuf {
         candidates.push(PathBuf::from(p));
     }
     candidates.push(root.join("wads/freedoom1.wad"));
-    candidates.push(root.join("doom1.wad"));
+    candidates.push(root.join("games/doom/doom1.wad"));
     for c in candidates {
         // A Git LFS pointer is a text file; only accept real IWADs.
         if std::fs::read(&c).is_ok_and(|b| b.starts_with(b"IWAD")) {
