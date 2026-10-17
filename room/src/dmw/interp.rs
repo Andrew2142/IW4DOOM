@@ -93,7 +93,14 @@ fn single_tics() -> bool {
 
 /// `TryRunTics`: `true` = no tic is due, return and draw a frame instead of waiting.
 pub(crate) fn return_early(availabletics: c_int) -> bool {
-    availabletics < 1 && active() && !single_tics()
+    availabletics < 1 && active() && !single_tics() && !demo_advance_pending()
+}
+
+/// `D_StartTitle` queues the title page; only a tic (`D_Ticker`) sets `pagename`. Drawing a
+/// frame first would hand `D_PageDrawer` a null lump name.
+fn demo_advance_pending() -> bool {
+    // SAFETY: plain int read on the engine thread.
+    unsafe { crate::doom::d_main::advancedemo != 0 }
 }
 
 /// `P_Ticker`, after the pause checks: remember where everything is before the world moves.
