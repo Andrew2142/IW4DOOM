@@ -119,94 +119,68 @@ pub extern "C" fn V_SetPatchClipCallback(func: vpatchclipfunc_t) {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn V_DrawPatch(x: c_int, y: c_int, patch: *mut patch_t) {
-    unsafe {
-        let y = y - (*patch).topoffset as c_int;
-        let x = x - (*patch).leftoffset as c_int;
+/// Draw `patch` at `(x, y)`, clipped to the screen. `flipped` mirrors it left to right.
+///
+/// A patch wider than the screen (the 560x200 title and intermission pages in the 2019
+/// Doom II re-release) is centred, so the 4:3 middle is shown. Without the clip it wrote past
+/// `I_VideoBuffer` into the zone heap.
+unsafe fn draw_patch_clipped(x: c_int, y: c_int, patch: *mut patch_t, flipped: bool) {
+    let w = (*patch).width as c_int;
+    let y = y - (*patch).topoffset as c_int;
+    let mut x = x - (*patch).leftoffset as c_int;
+    if w > SCREENWIDTH {
+        x += (SCREENWIDTH - w) / 2;
+    }
 
-        if let Some(cb) = patchclip_callback {
-            if cb(patch, x, y) == 0 {
-                return;
-            }
+    if let Some(cb) = patchclip_callback {
+        if cb(patch, x, y) == 0 {
+            return;
         }
+    }
 
-        V_MarkRect(x, y, (*patch).width as c_int, (*patch).height as c_int);
+    V_MarkRect(
+        x.max(0),
+        y.max(0),
+        w.min(SCREENWIDTH - x.max(0)),
+        ((*patch).height as c_int).min(SCREENHEIGHT - y.max(0)),
+    );
 
-        let w = (*patch).width as c_int;
-        let mut desttop = dest_screen.add((y * SCREENWIDTH + x) as usize);
+    let mut col = 0;
+    while col < w {
+        let screen_x = x + col;
+        if (0..SCREENWIDTH).contains(&screen_x) {
+            let src_col = if flipped { w - 1 - col } else { col };
+            let ofs =
+                ptr::read_unaligned((patch as *mut u8).add(8 + src_col as usize * 4) as *mut i32);
+            let mut col_ptr = (patch as *mut u8).add(ofs as usize) as *mut column_t;
 
-        let mut col = 0;
-        while col < w {
-            let ofs = ptr::read_unaligned((patch as *mut u8).add(8 + col as usize * 4) as *mut i32);
-            let column = (patch as *mut u8).add(ofs as usize) as *mut column_t;
-
-            let mut col_ptr = column;
             while (*col_ptr).topdelta != 0xff {
-                let mut source = (col_ptr as *mut u8).add(3);
-                let mut dest = desttop.add((*col_ptr).topdelta as usize * SCREENWIDTH as usize);
-                let mut count = (*col_ptr).length as c_int;
-
-                while count > 0 {
-                    *dest = *source;
-                    dest = dest.add(SCREENWIDTH as usize);
-                    source = source.add(1);
-                    count -= 1;
+                let top = y + (*col_ptr).topdelta as c_int;
+                let source = (col_ptr as *mut u8).add(3);
+                let first = (-top).max(0);
+                let last = ((*col_ptr).length as c_int).min(SCREENHEIGHT - top);
+                let mut row = first;
+                while row < last {
+                    *dest_screen.add(((top + row) * SCREENWIDTH + screen_x) as usize) =
+                        *source.add(row as usize);
+                    row += 1;
                 }
 
                 col_ptr = (col_ptr as *mut u8).add((*col_ptr).length as usize + 4) as *mut column_t;
             }
-
-            col += 1;
-            desttop = desttop.add(1);
         }
+        col += 1;
     }
 }
 
 #[no_mangle]
+pub extern "C" fn V_DrawPatch(x: c_int, y: c_int, patch: *mut patch_t) {
+    unsafe { draw_patch_clipped(x, y, patch, false) }
+}
+
+#[no_mangle]
 pub extern "C" fn V_DrawPatchFlipped(x: c_int, y: c_int, patch: *mut patch_t) {
-    unsafe {
-        let y = y - (*patch).topoffset as c_int;
-        let x = x - (*patch).leftoffset as c_int;
-
-        if let Some(cb) = patchclip_callback {
-            if cb(patch, x, y) == 0 {
-                return;
-            }
-        }
-
-        V_MarkRect(x, y, (*patch).width as c_int, (*patch).height as c_int);
-
-        let w = (*patch).width as c_int;
-        let mut desttop = dest_screen.add((y * SCREENWIDTH + x) as usize);
-
-        let mut col = 0;
-        while col < w {
-            let ofs = ptr::read_unaligned(
-                (patch as *mut u8).add(8 + (w - 1 - col) as usize * 4) as *mut i32
-            );
-            let column = (patch as *mut u8).add(ofs as usize) as *mut column_t;
-
-            let mut col_ptr = column;
-            while (*col_ptr).topdelta != 0xff {
-                let mut source = (col_ptr as *mut u8).add(3);
-                let mut dest = desttop.add((*col_ptr).topdelta as usize * SCREENWIDTH as usize);
-                let mut count = (*col_ptr).length as c_int;
-
-                while count > 0 {
-                    *dest = *source;
-                    dest = dest.add(SCREENWIDTH as usize);
-                    source = source.add(1);
-                    count -= 1;
-                }
-
-                col_ptr = (col_ptr as *mut u8).add((*col_ptr).length as usize + 4) as *mut column_t;
-            }
-
-            col += 1;
-            desttop = desttop.add(1);
-        }
-    }
+    unsafe { draw_patch_clipped(x, y, patch, true) }
 }
 
 #[no_mangle]
